@@ -1,3 +1,5 @@
 dati/
 
 *.arff
+.DS_Store
+*.zip
