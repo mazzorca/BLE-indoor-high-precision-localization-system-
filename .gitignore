@@ -1,4 +1,6 @@
 dati/
+.idea/
+__pycache__/
 
 *.arff
 .DS_Store

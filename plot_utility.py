@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_single_ax(ax, what_to_plot, ax_title="", x_label=" ", y_label=""):
+def plot_single_ax(ax, what_to_plot, ax_title="", x_label="", y_label=""):
     ax.set_title(ax_title)
     ax.set(xlabel=x_label, ylabel=y_label)
 

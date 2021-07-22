@@ -12,6 +12,8 @@ import math
 import time
 import arff
 from kalman import SingleStateKalmanFilter
+from filterpy.common import Q_discrete_white_noise
+from filterpy.kalman import KalmanFilter
 from moving_average import MovingAverageFilter
 import matplotlib.animation
 
@@ -325,10 +327,51 @@ def convertEMT(namefile):
 # funzione per la conversione dei dati da file .csv dai 5 reader in una lista di array [R1,R2,R3,R4,R5]
 # effettuo il filtraggio dei dati con il filtro di kalman e restituisco i dati filtrati e il timestamp
 def convertCSV(namefile):
+    dataset = [[] for _ in range(5)]
+    datasetTime = [[] for _ in range(5)]
+
+    A = 1.  # No process innovation
+    C = 1.  # Measurement
+    B = 1.  # No control input
+    Q = 0.001  # Process covariance 0.0001
+    R = 0.5  # Measurement covariance 0.5
+    x = -35.  # Initial estimate
+    P = 1.  # Initial covariance
+
+    # create kalman filter
+    kalman_filter = KalmanFilter(dim_x=1, dim_z=1)
+    kalman_filter.F = np.array([[A]])
+    kalman_filter.H = np.array([[C]])
+    kalman_filter.R = np.array([[R]])
+    kalman_filter.Q = np.array([[Q]])
+
+    for i in range(5):
+        # reset the filter
+        kalman_filter.x = np.array([x])
+        kalman_filter.P = np.array([[P]])
+
+        with open(f"dati/{namefile}{str(i + 1)}.csv") as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',')
+            line_count = 0
+
+            for row in csv_reader:
+                if line_count == 0:
+                    line_count += 1
+                    continue
+
+                kalman_filter.predict()
+                kalman_filter.update(float(row[2]))
+                dataset[i].append(kalman_filter.x[0])
+                datasetTime[i].append(float(row[1]))
+
+    return dataset, datasetTime
+
+
+# funzione per la conversione dei dati da file .csv dai 5 reader in una lista di array [R1,R2,R3,R4,R5]
+# effettuo il filtraggio dei dati con il filtro di kalman e restituisco i dati filtrati e il timestamp
+def convertCSV_backup(namefile):
     dataset = []
-    X = []
     datasetTime = []
-    T = []
 
     '''
     A = 1  # No process innovation
@@ -338,7 +381,7 @@ def convertCSV(namefile):
     R = 0.01# Measurement covariance 0.01
     x = -35  # Initial estimate
     P = 1  # Initial covariance
-    
+
     A = 1  # No process innovation
     C = 1  # Measurement
     B = 1  # No control input
@@ -346,7 +389,7 @@ def convertCSV(namefile):
     R = 0.5# Measurement covariance 0.5
     x = -35  # Initial estimate
     P = 1  # Initial covariance
- 
+
     '''
     A = 1  # No process innovation
     C = 1  # Measurement
