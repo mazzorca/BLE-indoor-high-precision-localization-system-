@@ -12,15 +12,21 @@ def plot_single_ax(ax, what_to_plot, ax_title="", x_label="", y_label=""):
     ax.legend()
 
 
-def plot_classifier(regressor_name, data):
-    fig, axs = plt.subplots(2, 2)
+def plot(plot_name, data, num_row, num_col):
+    fig, axs = plt.subplots(num_row, num_col)
 
-    plot_single_ax(axs[0, 0], data[0])
-    plot_single_ax(axs[1, 0], data[1])
+    if num_row == 1 or num_col == 1:
+        if num_row == num_col:
+            plot_single_ax(axs, data[0])
+        else:
+            dim = num_row if num_row != 1 else num_col
+            for i in range(dim):
+                plot_single_ax(axs[i], data[i])
+    else:
+        for j in range(num_col):
+            for i in range(num_row):
+                plot_single_ax(axs[i, j], data[j * num_col + i])
 
-    plot_single_ax(axs[0, 1], data[2])
-    plot_single_ax(axs[1, 1], data[3])
-
-    fig.suptitle(regressor_name)
-    plt.tight_layout()
+    fig.suptitle(plot_name)
+    plt.tight_layout(pad=0)
     plt.show()

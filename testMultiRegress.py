@@ -1,7 +1,7 @@
+import config
 import numpy as np
 import utility
 import plot_utility
-import config
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
@@ -13,8 +13,8 @@ if __name__ == "__main__":
     names = ["Random forest", "Nearest Neighbors U", "Nearest Neighbors D", "Decision Tree", "MLP"]
     classifiers = [
         RandomForestRegressor(),
-        KNeighborsRegressor(config.n_neighbors, weights='uniform'),
-        KNeighborsRegressor(config.n_neighbors, weights='distance'),
+        KNeighborsRegressor(config.N_NEIGHBOURS, weights='uniform'),
+        KNeighborsRegressor(config.N_NEIGHBOURS, weights='distance'),
         DecisionTreeRegressor(random_state=0),
         MLPRegressor(random_state=1, max_iter=50000)
     ]
@@ -51,4 +51,4 @@ if __name__ == "__main__":
             }
         ]
 
-        plot_utility.plot_classifier(name, data)
+        plot_utility.plot(name, data, 2, 2)

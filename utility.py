@@ -1,3 +1,5 @@
+import config
+import data_extractor
 import numpy as np
 from pylab import ylim, title, ylabel, xlabel
 import matplotlib.pyplot as plt
@@ -11,8 +13,6 @@ import random
 import math
 import time
 import arff
-from kalman import SingleStateKalmanFilter
-from filterpy.common import Q_discrete_white_noise
 from filterpy.kalman import KalmanFilter
 from moving_average import MovingAverageFilter
 import matplotlib.animation
@@ -65,11 +65,36 @@ def pol2cart(rho, phi):
 
 # funzione per la conversione da coordinate polari a cartesiane (singolarmenti)
 def pol2cartS(rho, phi):
-    x = 0
-    y = 0
     x = rho * np.cos(phi)
     y = rho * np.sin(phi)
     return x, y
+
+
+def equalize_data_with_nan(data):
+    max_dim = max([len(elem) for elem in data])
+    print(max_dim)
+
+    for vec in data:
+        vec.extend([np.nan]*(max_dim - len(vec)))
+
+    return data
+
+
+def create_or_insert_in_list(building_dict, key, value):
+    """
+    Create the list or append a value on it
+    :param building_dict: building dict
+    :param key: key to save value
+    :param value: thee value to add to the list
+    :return: void
+    """
+    if key not in building_dict:
+        building_dict[key] = list()
+    building_dict[key].append(value)
+
+
+def moving_average(x, w):
+    return np.convolve(x, np.ones(w), 'valid') / w
 
 
 # funzione per fare la predizione dei valori V con l'estimantore est
@@ -324,113 +349,98 @@ def convertEMT(namefile):
     return dataSplitNew
 
 
+def create_kalman_filter(kalman_filter_par):
+    kalman_filter = KalmanFilter(dim_x=1, dim_z=1)
+    kalman_filter.F = np.array([[kalman_filter_par['A']]])
+    kalman_filter.H = np.array([[kalman_filter_par['C']]])
+    kalman_filter.R = np.array([[kalman_filter_par['R']]])
+    kalman_filter.Q = np.array([[kalman_filter_par['Q']]])
+
+    return kalman_filter
+
+
 # funzione per la conversione dei dati da file .csv dai 5 reader in una lista di array [R1,R2,R3,R4,R5]
 # effettuo il filtraggio dei dati con il filtro di kalman e restituisco i dati filtrati e il timestamp
-def convertCSV(namefile):
-    dataset = [[] for _ in range(5)]
-    datasetTime = [[] for _ in range(5)]
+def extract_and_apply_kalman_csv(namefile, kalman_filter_par=None):
+    dataset = []
+    dataset_time = []
 
-    A = 1.  # No process innovation
-    C = 1.  # Measurement
-    B = 1.  # No control input
-    Q = 0.001  # Process covariance 0.0001
-    R = 0.5  # Measurement covariance 0.5
-    x = -35.  # Initial estimate
-    P = 1.  # Initial covariance
+    if kalman_filter_par is None:
+        kalman_filter_par = config.KALMAN_BASE
 
     # create kalman filter
-    kalman_filter = KalmanFilter(dim_x=1, dim_z=1)
-    kalman_filter.F = np.array([[A]])
-    kalman_filter.H = np.array([[C]])
-    kalman_filter.R = np.array([[R]])
-    kalman_filter.Q = np.array([[Q]])
+    kalman_filter = create_kalman_filter(kalman_filter_par)
 
     for i in range(5):
         # reset the filter
-        kalman_filter.x = np.array([x])
-        kalman_filter.P = np.array([[P]])
+        kalman_filter.x = np.array([kalman_filter_par['x']])
+        kalman_filter.P = np.array([[kalman_filter_par['P']]])
 
-        with open(f"dati/{namefile}{str(i + 1)}.csv") as csv_file:
-            csv_reader = csv.reader(csv_file, delimiter=',')
-            line_count = 0
+        raw_data, raw_time = data_extractor.get_raw_rssi_csv_reader(f"dati/{namefile}{str(i + 1)}.csv")
 
-            for row in csv_reader:
-                if line_count == 0:
-                    line_count += 1
-                    continue
+        dataset_time.append(raw_time)
 
-                kalman_filter.predict()
-                kalman_filter.update(float(row[2]))
-                dataset[i].append(kalman_filter.x[0])
-                datasetTime[i].append(float(row[1]))
+        dataset.append([])
+        for raw_point in raw_data:
+            kalman_filter.predict()
+            kalman_filter.update(raw_point)
+            dataset[i].append(kalman_filter.x[0])
 
-    return dataset, datasetTime
+    return dataset, dataset_time
 
 
-# funzione per la conversione dei dati da file .csv dai 5 reader in una lista di array [R1,R2,R3,R4,R5]
-# effettuo il filtraggio dei dati con il filtro di kalman e restituisco i dati filtrati e il timestamp
-def convertCSV_backup(namefile):
-    dataset = []
-    datasetTime = []
+def apply_kalman_filter(no_kalman_data, kalman_filter_par):
+    """
+    Apply  the kalman filter on the raw data
+    :param no_kalman_data:
+    :type kalman_filter_par: dict
+    """
+    kalman_data = []
 
-    '''
-    A = 1  # No process innovation
-    C = 1  # Measurement
-    B = 1  # No control input
-    Q = 0.00001  # Process covariance 0.00001
-    R = 0.01# Measurement covariance 0.01
-    x = -35  # Initial estimate
-    P = 1  # Initial covariance
+    kalman_filter = create_kalman_filter(kalman_filter_par)
 
-    A = 1  # No process innovation
-    C = 1  # Measurement
-    B = 1  # No control input
-    Q = 0.0001  # Process covariance 0.0001
-    R = 0.5# Measurement covariance 0.5
-    x = -35  # Initial estimate
-    P = 1  # Initial covariance
+    for i, raw_data_reader in enumerate(no_kalman_data):
+        # reset the filter
+        kalman_filter.x = np.array([kalman_filter_par['x']])
+        kalman_filter.P = np.array([[kalman_filter_par['P']]])
 
-    '''
-    A = 1  # No process innovation
-    C = 1  # Measurement
-    B = 1  # No control input
-    Q = 0.001  # Process covariance 0.0001
-    R = 0.5  # Measurement covariance 0.5
-    x = -35  # Initial estimate
-    P = 1  # Initial covariance
+        kalman_data.append([])
+        for raw_value in raw_data_reader:
+            kalman_filter.predict()
+            kalman_filter.update(raw_value)
+            kalman_data[i].append(kalman_filter.x[0])
 
-    kalman_filters = []
+    return kalman_data
+
+
+def get_chunk(rssi_data, index_cut, chunk_num=-1):
+    if chunk_num == -1:
+        chunks = [pd.DataFrame({"RSSI Value": rssi}) for rssi in rssi_data]
+        return chunks
+
+    chunks = [[] for _ in range(5)]
+    for i, chunk in enumerate(chunks):
+        reader_cut = index_cut[i]
+
+        for j in range(len(reader_cut) - 1):
+            cut_rssi = rssi_data[i][reader_cut[j]:reader_cut[j + 1]]
+            chunk.append(pd.DataFrame({"RSSI Value": cut_rssi}))
+
+    selected_chunk = [chunk[chunk_num] for chunk in chunks]
+    return selected_chunk
+
+
+def get_index_taglio_reader(time):
+    indextaglio_reader = []
+
     for j in range(5):
-        kalman_filter = SingleStateKalmanFilter(A, B, C, x, P, Q, R)
-        kalman_filters.append(kalman_filter)
+        indextaglio_reader.append([])
+        for i in range(len(time[j]) - 1):
+            if abs(time[j][i] - time[j][i + 1]) > 5:  # 5 secondi
+                indextaglio_reader[j].append(i)
+        indextaglio_reader[j].append(len(time[j]) - 1)
 
-    kalman_filter_estimates = [[], [], [], [], []]
-
-    for i in range(5):
-        with open(f"dati/{namefile}{str(i + 1)}.csv") as csv_file:
-            csv_reader = csv.reader(csv_file, delimiter=';')
-            X = []
-            T = []
-            line_count = 0
-            for row in csv_reader:
-                if line_count == 0:
-                    # print(f'Column names are {", ".join(row)}')
-                    line_count += 1
-                else:
-                    for col in row:
-                        # print(col)
-                        t = col.split(',')
-                        X.append(float(t[2]))
-                        T.append(float(t[1]))
-        dataset.append(X)
-        # print(len(X))
-        datasetTime.append(T)
-
-        for j in range(len(dataset[i])):
-            kalman_filters[i].step(0, dataset[i][j])
-            kalman_filter_estimates[i].append(kalman_filters[i].current_state())
-    # printReader(kalman_filter_estimates,dataset)
-    return kalman_filter_estimates, datasetTime
+    return indextaglio_reader
 
 
 # Funzione per il taglio dei dati provenienti dai 5 reader, andando ad allineare nel tempo i dati raccolti dalle
@@ -444,19 +454,8 @@ def fixReader(dati, time, tele):
             indextaglio.append(i)
 
     indextaglio.append(len(tele[2]) - 1)
-    # print(indextaglio)
-    # print(len(indextaglio))
 
-    indextaglio_reader = []
-    for j in range(len(time)):
-
-        indextaglio_reader.append([])
-        for i in range(len(time[j]) - 1):
-            if abs(time[j][i] - time[j][i + 1]) > 5:  # 5 secondi
-                indextaglio_reader[j].append(i)
-        indextaglio_reader[j].append(len(time[j]) - 1)
-    # print(indextaglior)
-    # print(len(indextaglior))
+    indextaglio_reader = get_index_taglio_reader(time)
 
     for i in range(len(dati)):
         newData.append([])
@@ -629,7 +628,7 @@ def saveDataArff(dati, ottimo, name):
 
 
 def takeData(nameCSV, nameEMT):
-    datiReader, datiTimeReader = convertCSV(nameCSV)
+    datiReader, datiTimeReader = extract_and_apply_kalman_csv(nameCSV)
 
     datiTele = convertEMT(nameEMT)
 
