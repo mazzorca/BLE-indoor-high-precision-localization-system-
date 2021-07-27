@@ -97,6 +97,12 @@ def moving_average(x, w):
     return np.convolve(x, np.ones(w), 'valid') / w
 
 
+def change_Q_R(kalman_filter_par, Q, R):
+    kalman_filter_par['R'] = Q
+    kalman_filter_par['Q'] = R
+
+    return kalman_filter_par
+
 # funzione per fare la predizione dei valori V con l'estimantore est
 def new_evaluete(v, est):
     ret = []
@@ -414,27 +420,58 @@ def apply_kalman_filter(no_kalman_data, kalman_filter_par):
 
 
 def get_chunk(rssi_data, index_cut, chunk_num=-1):
-    if chunk_num == -1:
+    """
+    Divide the rssi_data in  chunks
+    :param rssi_data: data to split
+    :param index_cut: index where to split
+    :param chunk_num: a list of reader num list containing 3 options:
+                -2, return a dataframe with all the rssi for all position
+                -1, return a list of dataframe one for all position
+                >0, return a dataframe for the position selected
+    :return: a list of list
+    """
+    if chunk_num == -2:
         chunks = [pd.DataFrame({"RSSI Value": rssi}) for rssi in rssi_data]
         return chunks
 
     chunks = [[] for _ in range(5)]
-    for i, chunk in enumerate(chunks):
-        reader_cut = index_cut[i]
+    for reader_num, chunk in enumerate(chunks):
+        reader_cut = index_cut[reader_num]
 
-        for j in range(len(reader_cut) - 1):
-            cut_rssi = rssi_data[i][reader_cut[j]:reader_cut[j + 1]]
+        for _, row in reader_cut.iterrows():
+            cut_rssi = rssi_data[reader_num][row['start']:(row['end'] + 1)]
             chunk.append(pd.DataFrame({"RSSI Value": cut_rssi}))
+
+    if chunk_num == -1:
+        return chunks
 
     selected_chunk = [chunk[chunk_num] for chunk in chunks]
     return selected_chunk
+
+
+def get_index_start_and_end_position(time):
+    indextaglio_reader = []
+
+    for reader_num in range(5):
+        start_index = [0]
+        end_index = []
+        for i in range(len(time[reader_num]) - 1):
+            if abs(time[reader_num][i] - time[reader_num][i + 1]) > 5:  # 5 secondi
+                start_index.append(i + 1)
+                end_index.append(i)
+        end_index.append(len(time[reader_num]) - 1)
+
+        df = pd.DataFrame({"start": start_index, "end": end_index})
+        indextaglio_reader.append(df)
+
+    return indextaglio_reader
 
 
 def get_index_taglio_reader(time):
     indextaglio_reader = []
 
     for j in range(5):
-        indextaglio_reader.append([])
+        indextaglio_reader.append([0])
         for i in range(len(time[j]) - 1):
             if abs(time[j][i] - time[j][i + 1]) > 5:  # 5 secondi
                 indextaglio_reader[j].append(i)
@@ -640,7 +677,7 @@ def takeData(nameCSV, nameEMT):
     return datiReaderCut, datiTeleCut
 
 
-def load_dataset(dataset_name):
+def load_dataset_arff(dataset_name):
     datasetRY = arff.load(open(f'{dataset_name}y0.arff'))
     dataRY = np.array(datasetRY['data'])
 
@@ -655,61 +692,3 @@ def load_dataset(dataset_name):
     y = np.column_stack([ry, py])
 
     return X, y
-
-
-if __name__ == "__main__":
-    datiCSV1, datiEMT1 = takeData("dati3105run0r", "Cal3105run0")
-    printDati(datiCSV1, datiEMT1)
-    print(len(datiCSV1[0]))
-    print(len(datiEMT1[0]))
-
-    datiCSV2, datiEMT2 = takeData("dati3105run1r", "Cal3105run1")
-    printDati(datiCSV2, datiEMT2)
-    print(len(datiCSV2[0]))
-    print(len(datiEMT2[0]))
-
-    datiCSV3, datiEMT3 = takeData("dati3105run2r", "Cal3105run2")
-    printDati(datiCSV3, datiEMT3)
-    print(len(datiCSV3[0]))
-    print(len(datiEMT3[0]))
-
-    datiCSV0, datiEMT0 = takeData("BLE2605r", "2605r0")
-    printDati(datiCSV0, datiEMT0)
-    print(len(datiCSV0[0]))
-    print(len(datiEMT0[0]))
-
-    name = "Train"
-    saveDataArff(datiCSV0, datiEMT0, name)
-    print("fine savedataarff 0")
-
-    name = "Test1"
-    saveDataArff(datiCSV1, datiEMT1, name)
-    print("fine savedataarff 1")
-
-    name = "Test2"
-    saveDataArff(datiCSV2, datiEMT2, name)
-    print("fine savedataarff 2")
-
-    name = "Test3"
-    saveDataArff(datiCSV3, datiEMT3, name)
-    print("fine savedataarff 3")
-
-    X = [[], [], [], [], []]
-    Y = [[], []]
-    for i in range(len(X)):
-        X[i] = datiCSV0[i]
-        X[i] = X[i] + datiCSV3[i]
-        X[i] = X[i] + datiCSV2[i]
-        X[i] = X[i] + datiCSV1[i]
-        print(len(X[i]))
-
-    for i in range(len(Y)):
-        Y[i] = datiEMT0[i]
-        Y[i] = Y[i] + datiEMT3[i]
-        Y[i] = Y[i] + datiEMT2[i]
-        Y[i] = Y[i] + datiEMT1[i]
-        print(len(Y[i]))
-
-    name = "Train0"
-    saveDataArff(X, Y, name)
-    print("fine savedataarff 00")

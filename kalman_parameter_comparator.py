@@ -1,81 +1,92 @@
 """
 Script that compare different kalman filters
 """
-
-import config
 import numpy as np
-import statistics
 import pandas as pd
 
+import config
 import utility
 import data_extractor
 
 # Experiment Set-up
-INITIAL_R = 0.001
-INITIAL_Q = 0.000001
+INITIAL_R = 0.009
+INITIAL_Q = 0.000005
 
-FINAL_R = 0.1
-FINAL_Q = 0.0001
+FINAL_R = 0.011
+FINAL_Q = 0.000015
 
-NUM_R = 4
-NUM_Q = 4
+NUM_R = 10
+NUM_Q = 10
 
 WINDOWS_SIZE = 50
 
-STD_TH = 1.
+RSSI_BAND = 2.
 
 if __name__ == "__main__":
 
     raws_data, raws_time = data_extractor.get_raw_rssi_csv("BLE2605r")
-    index_cut = utility.get_index_taglio_reader(raws_time)
+    index_cut = utility.get_index_start_and_end_position(raws_time)
 
     experiment_dict = {
         'R': [],
         'Q': [],
-        'T_RAISE': [],
-        'STABILITY': []
+        'T_RAISE_AVG': [],
+        'T_RAISE_MIN': [],
+        'T_RAISE_MAX': []
     }
 
-    selected_cut = 0
+    all_index_ass0 = {}
     kalman_filter_par = config.KALMAN_BASE
     for R in np.linspace(INITIAL_R, FINAL_R, NUM_R):
         kalman_filter_par['R'] = R
         for Q in np.linspace(INITIAL_Q, FINAL_Q, NUM_Q):
             kalman_filter_par['Q'] = Q
             kalman_data = utility.apply_kalman_filter(raws_data, kalman_filter_par)
-            chunks_reader = utility.get_chunk(kalman_data, index_cut, chunk_num=selected_cut)
+            kalman_chunks = utility.get_chunk(kalman_data, index_cut)
+            raw_chunks = utility.get_chunk(raws_data, index_cut)
 
             t_raise = []
-            diff_mean = []
-            for i, chunk in enumerate(chunks_reader):
-                df_temp = chunk.copy()
-                chunk['std'] = df_temp.rolling(WINDOWS_SIZE).std()
-                chunk['mean'] = df_temp.rolling(WINDOWS_SIZE).mean()
-                chunk['median'] = df_temp.rolling(WINDOWS_SIZE).median()
+            for reader_num, chunks in enumerate(zip(kalman_chunks, raw_chunks)):
+                kalman_chunks = chunks[0]
+                raw_chunks = chunks[1]
 
-                index_std = chunk.loc[chunk['std'] < STD_TH].first_valid_index()
-                start_index = index_cut[i][selected_cut]
-                end_index = index_cut[i][selected_cut + 1] - start_index - 1
+                t_raise.append([])
+                for j, chunk in enumerate(zip(kalman_chunks, raw_chunks)):
+                    kalman_chunk = chunk[0]
+                    raw_chunk = chunk[1]
 
-                if index_std is None:
-                    index_std = end_index
+                    df_temp = kalman_chunk.copy()
+                    kalman_chunk['std'] = df_temp.rolling(WINDOWS_SIZE).std()
+                    kalman_chunk['mean'] = df_temp.rolling(WINDOWS_SIZE).mean()
+                    kalman_chunk['median'] = df_temp.rolling(WINDOWS_SIZE).median()
 
-                t_raise.append(raws_time[i][start_index + index_std] - raws_time[i][start_index])
+                    raw_mean = np.mean(raw_chunk['RSSI Value'])
 
-                chunk = chunk.drop(chunk.index[list(range(index_std))])
+                    scaled_kalman_chunk = kalman_chunk['RSSI Value'].subtract(raw_mean)
 
-                min_mean = chunk['mean'].min()
-                max_mean = chunk['mean'].max()
-                if end_index == index_std:
-                    diff_mean.append(abs(max_mean))
-                else:
-                    diff_mean.append(max_mean - min_mean)
+                    index_ass = 0
+                    for index, value in scaled_kalman_chunk.items():
+                        if value > RSSI_BAND or value < -RSSI_BAND:
+                            index_ass = index
 
+                    t_raise[reader_num].append(index_ass)
+
+            all_index_ass0[f'{R}R {Q}Q'] = t_raise[0]
             experiment_dict['R'].append(R)
             experiment_dict['Q'].append(Q)
-            experiment_dict['T_RAISE'].append(statistics.mean(t_raise))
-            experiment_dict['STABILITY'].append(statistics.mean(diff_mean))
 
+            t_raise_np = np.array(t_raise)
+            experiment_dict['T_RAISE_AVG'].append(np.mean(t_raise_np))
+
+            t_raise_min_np = []
+            t_raise_max_np = []
+            for i in range(t_raise_np.shape[1]):
+                t_raise_min_np.append(np.min(t_raise_np[:, i]))
+                t_raise_max_np.append(np.max(t_raise_np[:, i]))
+            experiment_dict['T_RAISE_MIN'].append(np.mean(t_raise_min_np))
+            experiment_dict['T_RAISE_MAX'].append(np.mean(t_raise_max_np))
+
+    all_index_ass0_df = pd.DataFrame(all_index_ass0)
     experiment_df = pd.DataFrame(experiment_dict)
     experiment_df.set_index(['R', 'Q'])
 
