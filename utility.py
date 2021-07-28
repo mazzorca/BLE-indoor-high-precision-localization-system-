@@ -315,7 +315,6 @@ def printError(errorx, errory):
 # funzione per la conversione dei dati da file .emt in una lista di array ["Frame","Time","Mk0.X","Mk0.Y","Mk0.Z"]
 # effettuo la pulizia dei valori NAN e taglio i valori con z > 0.05 metri quando passo da una postazione all'altra
 def convertEMT(namefile):
-    print(namefile)
     f = open(f"dati/{namefile}.emt")
     lines = f.readlines()
     dataSplit = []

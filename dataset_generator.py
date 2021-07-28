@@ -1,4 +1,23 @@
 import utility
+import numpy as np
+
+
+def generate_dataset_from_a_kalman_data(kalman_data, time, name_file_cam):
+    dati_cam = utility.convertEMT(name_file_cam)
+    dati_reader_fixed, time_fixed, index_cut = utility.fixReader(kalman_data, time, dati_cam)
+    dati_reader_cut, dati_cam_cut = utility.cutReader(dati_reader_fixed, dati_cam, index_cut)
+
+    X = np.array(dati_reader_cut)
+    X = np.transpose(X)
+
+    cam_cut_np = np.array(dati_cam_cut)
+    cam_cut_np = np.transpose(cam_cut_np)
+
+    ry, py = utility.cart2pol(cam_cut_np[:, 0], cam_cut_np[:, 1])
+    y = np.column_stack([ry, py])
+
+    return X, y
+
 
 if __name__ == "__main__":
     datiCSV1, datiEMT1 = utility.takeData("dati3105run0r", "Cal3105run0")
