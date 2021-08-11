@@ -44,3 +44,39 @@ def get_raw_rssi_csv(name_file):
         raws_time.append(raw_time)
 
     return raws_data, raws_time
+
+
+def get_raws_data_runs(name_files):
+    """
+
+    :param name_files: list of runs
+    :return:
+    [
+        [ # name_file[0]
+            [rssi_reader0],
+            [rssi_reader1],
+            .
+            .
+            .
+            [rssi_readerN]
+        ],
+        .
+        .
+        .
+        [ # name_file[N]
+            [rssi_reader0],
+            .
+            .
+            .
+            [rssi_readerN]
+        ]
+    ]
+    """
+    raws_runs_data = []
+    raws_runs_time = []
+    for name in name_files:
+        raws_data, raws_time = get_raw_rssi_csv(name)
+        raws_runs_data.append(raws_data)
+        raws_runs_time.append(raws_time)
+
+    return raws_runs_data, raws_runs_time

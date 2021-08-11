@@ -75,7 +75,7 @@ def equalize_data_with_nan(data):
     print(max_dim)
 
     for vec in data:
-        vec.extend([np.nan]*(max_dim - len(vec)))
+        vec.extend([np.nan] * (max_dim - len(vec)))
 
     return data
 
@@ -102,6 +102,25 @@ def change_Q_R(kalman_filter_par, Q, R):
     kalman_filter_par['Q'] = R
 
     return kalman_filter_par
+
+
+def get_means_and_bounds(chunks):
+    raw_means = []
+    bounds_up = []
+    bounds_down = []
+
+    for chunks_reader in chunks:
+        raw_mean = []
+        for raw_chunk in chunks_reader:
+            raw_mean.append(np.mean(raw_chunk['RSSI Value']))
+        raw_means.append(raw_mean)
+
+    for reader in raw_means:
+        bounds_up.append([elem + config.OUTLIERS_BAND for elem in reader])
+        bounds_down.append([elem - config.OUTLIERS_BAND for elem in reader])
+
+    return raw_means, bounds_up, bounds_down
+
 
 # funzione per fare la predizione dei valori V con l'estimantore est
 def new_evaluete(v, est):
@@ -466,6 +485,17 @@ def get_index_start_and_end_position(time):
     return indextaglio_reader
 
 
+def get_index_taglio(tele):
+    indextaglio = [100]
+    for i in range(len(tele[2]) - 1):  # len(tele[2]) = lunghezza valori nella x
+        if (abs(tele[2][i] - tele[2][i + 1]) > 0.1) | (abs(tele[3][i] - tele[3][i + 1]) > 0.1):
+            indextaglio.append(i)
+
+    indextaglio.append(len(tele[2]) - 1)
+
+    return indextaglio
+
+
 def get_index_taglio_reader(time):
     indextaglio_reader = []
 
@@ -476,7 +506,41 @@ def get_index_taglio_reader(time):
                 indextaglio_reader[j].append(i)
         indextaglio_reader[j].append(len(time[j]) - 1)
 
+    for j in range(2):
+        for i in range(len(indextaglio_reader)):
+            indextaglio_reader.append(indextaglio_reader[i])
+
     return indextaglio_reader
+
+
+def remove_outliers(kalman_chunks, bounds_ups, bounds_downs):
+    data_without_outliers = []
+    for i, chunks in enumerate(kalman_chunks):
+        data_without_outliers.append([])
+        for j, chunk in enumerate(chunks):
+            df = pd.DataFrame(chunk)
+            data_without_outliers[i].extend(df.clip(bounds_ups[i][j], bounds_downs[i][j])['RSSI Value'].to_list())
+
+    return data_without_outliers
+
+
+def add_mean_and_std(kalman_data, raw_chunks):
+    means = []
+    stds = []
+    for reader_number, raw_chunk_reader in enumerate(raw_chunks):
+        means.append([])
+        stds.append([])
+        for chunk in raw_chunk_reader:
+            df_temp = chunk.copy()
+            chunk['mean'] = df_temp.rolling(int((len(chunk) / 3))).std()
+            means[reader_number].extend(chunk['mean'].tolist())
+            chunk['std'] = df_temp.rolling(int((len(chunk) / 3))).mean()
+            stds[reader_number].extend(chunk['std'].tolist())
+
+    kalman_data.extend(means)
+    kalman_data.extend(stds)
+
+    return kalman_data
 
 
 # Funzione per il taglio dei dati provenienti dai 5 reader, andando ad allineare nel tempo i dati raccolti dalle
@@ -484,14 +548,13 @@ def get_index_taglio_reader(time):
 def fixReader(dati, time, tele):
     newData = []
     newTime = []
-    indextaglio = [100]
-    for i in range(len(tele[2]) - 1):  # len(tele[2]) = lunghezza valori nella x
-        if (abs(tele[2][i] - tele[2][i + 1]) > 0.1) | (abs(tele[3][i] - tele[3][i + 1]) > 0.1):
-            indextaglio.append(i)
 
-    indextaglio.append(len(tele[2]) - 1)
-
+    indextaglio = get_index_taglio(tele)
     indextaglio_reader = get_index_taglio_reader(time)
+
+    if len(indextaglio) < len(indextaglio_reader[0]):
+        for index in indextaglio_reader:
+            index.remove(index[0])
 
     for i in range(len(dati)):
         newData.append([])
@@ -508,7 +571,7 @@ def fixReader(dati, time, tele):
                 for x in range(fattore + 1):
                     if tot_data_inserted < dim_data_tele:
                         newData[i].append(dati[i][indextaglio_reader[i][j] + t])
-                        newTime[i].append(time[i][indextaglio_reader[i][j] + t])
+                        newTime[i].append(time[i % 5][indextaglio_reader[i][j] + t])
                         tot_data_inserted = tot_data_inserted + 1
 
     return newData, newTime, indextaglio
@@ -516,10 +579,10 @@ def fixReader(dati, time, tele):
 
 # funziona per il taglio dei dati per via del ritardo che introduce il filtro di kalman
 def cutReader(dati, tele, ind):
-    newData = [[], [], [], [], []]
-    newTele = [[], []]
-    new_data = [0, 0, 0, 0, 0]
-    old_data = [0, 0, 0, 0, 0]
+    newData = [[] for _ in range(len(dati))]
+    newTele = [[] for _ in range(2)]
+    new_data = [0 for _ in range(len(dati))]
+    old_data = [0 for _ in range(len(dati))]
 
     for j in range(len(ind) - 1):
         dim = ind[j + 1] - ind[j]
@@ -531,10 +594,10 @@ def cutReader(dati, tele, ind):
                 if ind[j] + offset + t < len(dati[i]):
                     new_data[i] = dati[i][ind[j] + offset + t]
 
-            if not np.array_equal(new_data, old_data):
+            if not np.array_equal(new_data, old_data) and not np.isnan(np.min(new_data)):
                 for i in range(len(dati)):
                     newData[i].append(dati[i][ind[j] + offset + t])
-                for i in range(5):
+                for i in range(len(new_data)):
                     old_data[i] = new_data[i]
                 newTele[0].append(tele[2][ind[j] + offset + t])
                 newTele[1].append(tele[3][ind[j] + offset + t])

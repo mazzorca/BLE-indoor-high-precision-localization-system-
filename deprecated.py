@@ -66,3 +66,33 @@ def convertCSV_backup(namefile):
             kalman_filter_estimates[i].append(kalman_filters[i].current_state())
     # printReader(kalman_filter_estimates,dataset)
     return kalman_filter_estimates, datasetTime
+
+
+# funziona per il taglio dei dati per via del ritardo che introduce il filtro di kalman
+def cutReader_backup(dati, tele, ind):
+    newData = [[], [], [], [], []]
+    newTele = [[], []]
+    new_data = [0, 0, 0, 0, 0]
+    old_data = [0, 0, 0, 0, 0]
+
+    for j in range(len(ind) - 1):
+        dim = ind[j + 1] - ind[j]
+        offset = math.trunc(dim / 3)
+        # print(offset)
+        lun = offset
+        for t in range(lun):
+            for i in range(len(dati)):
+                if ind[j] + offset + t < len(dati[i]):
+                    new_data[i] = dati[i][ind[j] + offset + t]
+
+            if not np.array_equal(new_data, old_data):
+                for i in range(len(dati)):
+                    newData[i].append(dati[i][ind[j] + offset + t])
+                for i in range(5):
+                    old_data[i] = new_data[i]
+                newTele[0].append(tele[2][ind[j] + offset + t])
+                newTele[1].append(tele[3][ind[j] + offset + t])
+
+    # for i in range (5):
+    # print(len(newData[i]))
+    return newData, newTele

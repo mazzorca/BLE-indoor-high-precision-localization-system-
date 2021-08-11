@@ -5,6 +5,7 @@ import numpy as np
 import utility
 import plot_utility
 import matplotlib.pyplot as plt
+import dataset_generator
 from scipy.stats import iqr
 
 from sklearn.model_selection import train_test_split
@@ -14,18 +15,17 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.neural_network import MLPRegressor
 
 
-NAMES = ["Random forest", "Nearest Neighbors U", "Nearest Neighbors D", "Decision Tree", "MLP"]
+NAMES = ["Random forest", "Nearest Neighbors U", "Nearest Neighbors D", "Decision Tree"]
 CLASSIFIERS = [
     RandomForestRegressor(),
     KNeighborsRegressor(config.N_NEIGHBOURS, weights='uniform'),
     KNeighborsRegressor(config.N_NEIGHBOURS, weights='distance'),
-    DecisionTreeRegressor(random_state=0),
-    MLPRegressor(random_state=1, max_iter=50000)
+    DecisionTreeRegressor(random_state=0)
 ]
 
 
 def performance_dataset(X, y):
-    x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.50)
+    x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.20)
 
     lor = y_test[:, 0]
     lop = y_test[:, 1]
@@ -51,13 +51,40 @@ def performance_dataset(X, y):
     return errors
 
 
-if __name__ == "__main__":
-    X, y = utility.load_dataset_arff("datasetTrain0")
-
+def get_number_of_good_point(X, y):
     x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.50)
 
-    lor = y[:, 0]
-    lop = y[:, 1]
+    lor = y_test[:, 0]
+    lop = y_test[:, 1]
+    lox, loy = utility.pol2cart(lor, lop)
+
+    good_points = {}
+    for name, clf in zip(NAMES, CLASSIFIERS):
+        clf.fit(x_train, y_train)
+        Z = clf.predict(x_test)
+
+        lpr = Z[:, 0]
+        lpp = Z[:, 1]
+        lpx, lpy = utility.pol2cart(lpr, lpp)
+
+        good_point = 0
+        for i in range(len(lpx)):
+            p_predicted = np.array(lpx[i], lpy[i])
+            p_optimal = np.array(lox[i], loy[i])
+            dist = np.linalg.norm(p_predicted - p_optimal)
+            if dist < config.OPTIMAL_TH:
+                good_point += 1
+
+        good_points[name] = good_point
+
+    return good_points
+
+
+def plot_test_multi_regress(X, y, title_add="default"):
+    x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.25)
+
+    lor = y_test[:, 0]
+    lop = y_test[:, 1]
     lox, loy = utility.pol2cart(lor, lop)
 
     error_x_df = pd.DataFrame()
@@ -65,7 +92,7 @@ if __name__ == "__main__":
     for name, clf in zip(NAMES, CLASSIFIERS):
         print("fit " + name)
         clf.fit(x_train, y_train)
-        Z = clf.predict(X)
+        Z = clf.predict(x_test)
 
         lpr = Z[:, 0]
         lpp = Z[:, 1]
@@ -78,16 +105,22 @@ if __name__ == "__main__":
         error_y_df.insert(len(error_y_df.columns), name, error_y)
 
         df = pd.DataFrame({
-            'predicted x': lpx,
-            'optimal x': lox,
-            'predicted y': lpy,
-            'optimal y': loy
+            'diff x': error_x,
+            'diff y': error_y
         })
 
-        fig, axes = plt.subplots(2, 1)
-        fig.suptitle(name)
-        df.iloc[:, :2].plot(ax=axes[0])
-        df.iloc[:, 2:].plot(ax=axes[1])
+        # df.plot.scatter(title=name, x='diff x', y='diff y')
+        # df.plot.hexbin(title=f'{name} {title_add}', x='diff x', y='diff y', gridsize=20)
+        df.plot.kde(title=f'{name} {title_add}')
 
-    error_x_df.plot.box(title="Error x")
-    error_y_df.plot.box(title="Error y")
+    error_x_df.plot.box(title=f"Error x {title_add}")
+    error_y_df.plot.box(title=f"Error y {title_add}")
+
+
+if __name__ == "__main__":
+    # X, y = utility.load_dataset_arff("datasetTrain0")
+    X, y = dataset_generator.generate_dataset_base_all()
+    plot_test_multi_regress(X, y)
+
+    X, y = dataset_generator.generate_dataset_with_mean_and_std_all()
+    plot_test_multi_regress(X, y, title_add="mean_std")
