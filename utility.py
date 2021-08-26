@@ -532,9 +532,9 @@ def add_mean_and_std(kalman_data, raw_chunks):
         stds.append([])
         for chunk in raw_chunk_reader:
             df_temp = chunk.copy()
-            chunk['mean'] = df_temp.rolling(int((len(chunk) / 3))).std()
+            chunk['mean'] = df_temp.rolling(int((len(chunk) / 10))).std()
             means[reader_number].extend(chunk['mean'].tolist())
-            chunk['std'] = df_temp.rolling(int((len(chunk) / 3))).mean()
+            chunk['std'] = df_temp.rolling(int((len(chunk) / 10))).mean()
             stds[reader_number].extend(chunk['std'].tolist())
 
     kalman_data.extend(means)
@@ -594,6 +594,7 @@ def cutReader(dati, tele, ind):
                 if ind[j] + offset + t < len(dati[i]):
                     new_data[i] = dati[i][ind[j] + offset + t]
 
+            # np.isnan, is for mean and std dataset
             if not np.array_equal(new_data, old_data) and not np.isnan(np.min(new_data)):
                 for i in range(len(dati)):
                     newData[i].append(dati[i][ind[j] + offset + t])

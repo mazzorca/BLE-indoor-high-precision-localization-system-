@@ -1,6 +1,8 @@
 """
 This file contains the functions to visualize data
 """
+import matplotlib.pyplot as plt
+
 import config
 
 import numpy as np
@@ -51,13 +53,15 @@ def plot_raw_and_kalman_rssi():
     kalman_data1 = utility.apply_kalman_filter(raws_data, kalman_filter_par)
 
     plot_dict = {
-        "RAW_RSSI": raws_data[0],
-        "KALMAN_RSSI_MIN": kalman_data1[0]
+        "RAW_RSSI_0": raws_data[0],
+        "KALMAN_RSSI_0": kalman_data1[0]
     }
     df = pd.DataFrame(plot_dict)
 
     # df.plot.line(subplots=True)
     df.plot.line()
+
+    plt.savefig("raw_and_kalman_rssi.png")
 
 
 def different_kalman_filter():
@@ -127,6 +131,40 @@ def specific_kalman_filter(kalman_filters=None):
     df.plot.line()
 
 
+def specific_kalman_filter_chunck(kalman_filters=None, selected_cut=0):
+    raws_data, raws_time = data_extractor.get_raw_rssi_csv("BLE2605r")
+    index_cut = utility.get_index_start_and_end_position(raws_time)
+
+    plot_dict = {}
+
+    kalman_filter_par = config.KALMAN_BASE
+
+    if kalman_filters is not None:
+        for index, row in kalman_filters.iterrows():
+            R = row['R']
+            kalman_filter_par['R'] = R
+            Q = row['Q']
+            kalman_filter_par['Q'] = Q
+            kalman_data = utility.apply_kalman_filter(raws_data, kalman_filter_par)
+            chunks = utility.get_chunk(kalman_data, index_cut, chunk_num=selected_cut)
+            plot_dict[f'{R}R {Q}Q'] = chunks[0]['RSSI Value'].tolist()
+    else:
+        kalman_data = utility.apply_kalman_filter(raws_data, kalman_filter_par)
+        chunks = utility.get_chunk(kalman_data, index_cut, chunk_num=selected_cut)
+        plot_dict['REFERENCE'] = chunks[0]
+        kalman_filter_par = config.KALMAN_1
+        kalman_data = utility.apply_kalman_filter(raws_data, kalman_filter_par)
+        chunks = utility.get_chunk(kalman_data, index_cut, chunk_num=selected_cut)
+        plot_dict['SELECTED'] = chunks[0]
+
+    df = pd.DataFrame(plot_dict)
+
+    # df.plot.line(subplots=True)
+    df.plot.line()
+
+    plt.savefig("Kalman_difference_varing_.png")
+
+
 def plot_dataset_without_outliers():
     X_with_outlier, _ = dataset_generator.generate_dataset_base("BLE2605r", "2605r0")
     X_wo_outlier_r, _ = dataset_generator.generate_dataset_without_outliers("BLE2605r", "2605r0")
@@ -170,8 +208,40 @@ def get_raws_means_and_bounds_for_plot(index_cuts, raw_chunks):
     return raw_means, bounds_up, bounds_down
 
 
+def plot_y_dataset():
+    _, y_train = dataset_generator.generate_dataset_base("BLE2605r", "2605r0")
+
+    X_a = []
+    y_a = []
+    x, y = dataset_generator.generate_dataset_base("dati3105run0r", "Cal3105run0")
+    X_a.append(x)
+    y_a.append(y)
+    x, y = dataset_generator.generate_dataset_base("dati3105run1r", "Cal3105run1")
+    X_a.append(x)
+    y_a.append(y)
+    x, y = dataset_generator.generate_dataset_base("dati3105run2r", "Cal3105run2")
+    X_a.append(x)
+    y_a.append(y)
+
+    _, y_test = dataset_generator.concatenate_dataset(X_a, y_a)
+
+    c = [0 for _ in range(y_train.shape[0])]
+    x, y = utility.pol2cart(y_train[:, 0], y_train[:, 1])
+    y_train = np.column_stack([x, y])
+    y_train = np.column_stack([y_train, c])
+    c = [1 for _ in range(y_test.shape[0])]
+    x, y = utility.pol2cart(y_test[:, 0], y_test[:, 1])
+    y_test = np.column_stack([x, y])
+    y_test = np.column_stack([y_test, c])
+
+    y = np.concatenate((y_train, y_test))
+
+    df = pd.DataFrame(y, columns=["x", "y", "c"])
+    df.plot.scatter(x='x', y='y', c='c', colormap='viridis')
+
+
 if __name__ == "__main__":
-    visualize = 5
+    visualize = 2
 
     if visualize == 0:
         plot_kalman_rssi()
@@ -190,3 +260,6 @@ if __name__ == "__main__":
 
     if visualize == 5:
         plot_dataset_without_outliers()
+
+    if visualize == 6:
+        plot_y_dataset()

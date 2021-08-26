@@ -11,14 +11,14 @@ import data_extractor
 import dataset_generator
 
 # Experiment Set-up
-INITIAL_R = 0.001
-INITIAL_Q = 0.000001
+INITIAL_R = 0.01
+INITIAL_Q = 0.00001
 
 FINAL_R = 0.1
 FINAL_Q = 0.0001
 
-NUM_R = 50
-NUM_Q = 50
+NUM_R = 11
+NUM_Q = 21
 
 WINDOWS_SIZE = 50
 
@@ -130,7 +130,7 @@ def kalman_settling_sample_comparator(specific_kalman_filters=None, enable_regre
     experiment_df.to_excel("kalman_parameter_comparison-settling_sample.xlsx")
 
 
-def get_raws_data_runs():
+def get_raws_data_runs_all():
     name_files = ["BLE2605r", "dati3105run0r", "dati3105run1r", "dati3105run2r"]
 
     raws_runs_data = []
@@ -145,14 +145,14 @@ def get_raws_data_runs():
 
 def get_best_good_points(how_many, file_excel):
     df_total = pd.read_excel(file_excel)
-    df_sorted = df_total.nlargest(how_many, ["Random forest", "Nearest Neighbors D", "Nearest Neighbors U"])
+    df_sorted = df_total.nlargest(how_many, ["Nearest Neighbors D", "Nearest Neighbors U"])
     return df_sorted
 
 
 def get_kalman_good_point():
     cam_files = ["2605r0", "Cal3105run0", "Cal3105run1", "Cal3105run2"]
 
-    raws_run, raws_time = get_raws_data_runs()
+    raws_run, raws_time = get_raws_data_runs_all()
 
     experiment_dict = {
         'R': [],
@@ -183,12 +183,14 @@ def get_kalman_good_point():
                 X_list.append(X_run)
                 y_list.append(y_run)
 
-            X, y = dataset_generator.concatenate_dataset(X_list, y_list)
+            X_train = X_list[0]
+            y_train = y_list[0]
+            X_test, y_test = dataset_generator.concatenate_dataset(X_list[1:], y_list[1:])
 
             experiment_dict['R'].append(R)
             experiment_dict['Q'].append(Q)
 
-            good_points = testMultiRegress.get_number_of_good_point(X, y)
+            good_points = testMultiRegress.get_number_of_good_point(X_train, X_test, y_train, y_test)
 
             for regressor_name in good_points.keys():
                 utility.create_or_insert_in_list(experiment_dict, regressor_name, good_points[regressor_name])
@@ -196,10 +198,10 @@ def get_kalman_good_point():
     experiment_df = pd.DataFrame(experiment_dict)
     experiment_df.set_index(['R', 'Q'])
 
-    experiment_df.to_excel("kalman_parameter_comparator-good_points.xlsx")
+    experiment_df.to_excel("kpc-good_points.xlsx")
 
 
 if __name__ == "__main__":
-    # df = get_best_good_points(20, "kalman_parameter_comparator-good_points.xlsx")
+    # df = get_best_good_points(20, "kalman_parameter_comparator-good_points-bk.xlsx")
     # kalman_settling_sample_comparator(df[['Q', 'R']])
     get_kalman_good_point()

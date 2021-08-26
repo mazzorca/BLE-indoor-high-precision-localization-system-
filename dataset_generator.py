@@ -36,17 +36,23 @@ def generate_dataset_base(name_file_reader, name_file_cam):
     return X, y
 
 
-def generate_dataset_base_all():
-    name_files = ["BLE2605r", "dati3105run0r", "dati3105run1r", "dati3105run2r"]
-    cam_files = ["2605r0", "Cal3105run0", "Cal3105run1", "Cal3105run2"]
-
+def generate_dataset_from_list_of_files(name_file_readers, name_file_cams):
     X = np.array([[] for _ in range(5)]).transpose()
     y = np.array([[] for _ in range(2)]).transpose()
-    for name_file, cam_file in zip(name_files, cam_files):
+    for name_file, cam_file in zip(name_file_readers, name_file_cams):
         print(name_file)
         X_run, y_run = generate_dataset_base(name_file, cam_file)
         X = np.concatenate((X, X_run))
         y = np.concatenate((y, y_run))
+
+    return X, y
+
+
+def generate_dataset_base_all():
+    name_files = ["BLE2605r", "dati3105run0r", "dati3105run1r", "dati3105run2r"]
+    cam_files = ["2605r0", "Cal3105run0", "Cal3105run1", "Cal3105run2"]
+
+    X, y = generate_dataset_from_list_of_files(name_files, cam_files)
 
     return X, y
 
@@ -118,6 +124,8 @@ def generate_dataset_with_mean_and_std_all():
     X, y = concatenate_dataset(X_a, y_a)
 
     return X, y
+
+
 if __name__ == "__main__":
     datiCSV1, datiEMT1 = utility.takeData("dati3105run0r", "Cal3105run0")
     utility.printDati(datiCSV1, datiEMT1)

@@ -51,9 +51,7 @@ def performance_dataset(X, y):
     return errors
 
 
-def get_number_of_good_point(X, y):
-    x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.50)
-
+def get_number_of_good_point(x_train, x_test, y_train, y_test):
     lor = y_test[:, 0]
     lop = y_test[:, 1]
     lox, loy = utility.pol2cart(lor, lop)
@@ -80,9 +78,7 @@ def get_number_of_good_point(X, y):
     return good_points
 
 
-def plot_test_multi_regress(X, y, title_add="default"):
-    x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.25)
-
+def plot_test_multi_regress(x_train, x_test, y_train, y_test, title_add="default"):
     lor = y_test[:, 0]
     lop = y_test[:, 1]
     lox, loy = utility.pol2cart(lor, lop)
@@ -119,8 +115,46 @@ def plot_test_multi_regress(X, y, title_add="default"):
 
 if __name__ == "__main__":
     # X, y = utility.load_dataset_arff("datasetTrain0")
-    X, y = dataset_generator.generate_dataset_base_all()
-    plot_test_multi_regress(X, y)
+    # X, y = dataset_generator.generate_dataset_base_all()
+    # x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.70)
+    # plot_test_multi_regress(x_train, x_test, y_train, y_test)
+    #
+    # X, y = dataset_generator.generate_dataset_with_mean_and_std_all()
+    # x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.70)
+    # plot_test_multi_regress(x_train, x_test, y_train, y_test, title_add="mean_std")
 
-    X, y = dataset_generator.generate_dataset_with_mean_and_std_all()
-    plot_test_multi_regress(X, y, title_add="mean_std")
+    x_train, y_train = dataset_generator.generate_dataset_base("BLE2605r", "2605r0")
+
+    X_a = []
+    y_a = []
+    x, y = dataset_generator.generate_dataset_base("dati3105run0r", "Cal3105run0")
+    X_a.append(x)
+    y_a.append(y)
+    x, y = dataset_generator.generate_dataset_base("dati3105run1r", "Cal3105run1")
+    X_a.append(x)
+    y_a.append(y)
+    x, y = dataset_generator.generate_dataset_base("dati3105run2r", "Cal3105run2")
+    X_a.append(x)
+    y_a.append(y)
+
+    x_test, y_test = dataset_generator.concatenate_dataset(X_a, y_a)
+
+    plot_test_multi_regress(x_train, x_test, y_train, y_test)
+
+    x_train, y_train = dataset_generator.generate_dataset_with_mean_and_std("BLE2605r", "2605r0")
+
+    X_a = []
+    y_a = []
+    x, y = dataset_generator.generate_dataset_with_mean_and_std("dati3105run0r", "Cal3105run0")
+    X_a.append(x)
+    y_a.append(y)
+    x, y = dataset_generator.generate_dataset_with_mean_and_std("dati3105run1r", "Cal3105run1")
+    X_a.append(x)
+    y_a.append(y)
+    x, y = dataset_generator.generate_dataset_with_mean_and_std("dati3105run2r", "Cal3105run2")
+    X_a.append(x)
+    y_a.append(y)
+
+    x_test, y_test = dataset_generator.concatenate_dataset(X_a, y_a)
+
+    plot_test_multi_regress(x_train, x_test, y_train, y_test, title_add="mean_std")
