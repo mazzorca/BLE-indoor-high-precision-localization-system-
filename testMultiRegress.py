@@ -14,7 +14,6 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.neural_network import MLPRegressor
 
-
 NAMES = ["Random forest", "Nearest Neighbors U", "Nearest Neighbors D", "Decision Tree"]
 CLASSIFIERS = [
     RandomForestRegressor(),
@@ -22,6 +21,13 @@ CLASSIFIERS = [
     KNeighborsRegressor(config.N_NEIGHBOURS, weights='distance'),
     DecisionTreeRegressor(random_state=0)
 ]
+
+CLASSIFIERS_DICT = {
+    "Random forest": RandomForestRegressor(),
+    "Nearest Neighbors U": KNeighborsRegressor(config.N_NEIGHBOURS, weights='uniform'),
+    "Nearest Neighbors D": KNeighborsRegressor(config.N_NEIGHBOURS, weights='distance'),
+    "Decision Tree": DecisionTreeRegressor(random_state=0)
+}
 
 
 def performance_dataset(X, y):
@@ -113,6 +119,93 @@ def plot_test_multi_regress(x_train, x_test, y_train, y_test, title_add="default
     error_y_df.plot.box(title=f"Error y {title_add}")
 
 
+def get_ecdf_dataset(x_train, x_test, y_train, y_test, regressors=None):
+    lor = y_test[:, 0]
+    lop = y_test[:, 1]
+    lox, loy = utility.pol2cart(lor, lop)
+
+    if regressors is None:
+        regressors = CLASSIFIERS_DICT
+
+    bins = [0.01 * i for i in range(60)]
+    ecdf_dict = {}
+    for regressor_name in regressors:
+        regressors[regressor_name].fit(x_train, y_train)
+        Z = regressors[regressor_name].predict(x_test)
+
+        lpr = Z[:, 0]
+        lpp = Z[:, 1]
+        lpx, lpy = utility.pol2cart(lpr, lpp)
+
+        error_x = abs(np.subtract(lpx, lox))
+        error_y = abs(np.subtract(lpy, loy))
+
+        errors = np.add(error_x, error_y)
+        errors = np.power(errors, 2)
+        errors = np.sort(errors)
+
+        ecdf = [0]
+        unit = 1 / len(errors)
+        hist = np.histogram(errors, bins)
+        cumul_sum = 0
+        for i in hist[0]:
+            increment = unit * i
+            cumul_sum += increment
+            ecdf.append(cumul_sum)
+        ecdf.append(1)
+
+        ecdf_dict[f'ecdf_{regressor_name}'] = ecdf
+
+    bins = [str(bin_elem) for bin_elem in bins]
+    bins.append("0.60+")
+    df = pd.DataFrame(ecdf_dict, index=bins)
+
+    return df
+
+
+def main_test_dataset_default_vs_dataset_mean_and_std():
+    name_file_reader = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
+    name_file_cam = ["Cal3105run0", "Cal3105run1", "Cal3105run2"]
+
+    x_train, y_train = dataset_generator.generate_dataset_base("BLE2605r", "2605r0")
+
+    x_test, y_test = dataset_generator.generate_dataset(name_file_reader, name_file_cam,
+                                                        dataset_generator.generate_dataset_base)
+
+    plot_test_multi_regress(x_train, x_test, y_train, y_test)
+
+    x_train, y_train = dataset_generator.generate_dataset_with_mean_and_std("BLE2605r", "2605r0")
+
+    x_test, y_test = dataset_generator.generate_dataset(name_file_reader, name_file_cam,
+                                                        dataset_generator.generate_dataset_with_mean_and_std)
+
+    plot_test_multi_regress(x_train, x_test, y_train, y_test, title_add="mean_std")
+
+
+def main_test_ecdf():
+    name_files_reader = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
+    name_files_cam = ["Cal3105run0", "Cal3105run1", "Cal3105run2"]
+
+    x_train, y_train = dataset_generator.generate_dataset_base("BLE2605r", "2605r0")
+
+    ecdf_total = pd.DataFrame()
+    for name_file_reader, name_file_cam in zip(name_files_reader, name_files_cam):
+        x_test, y_test = dataset_generator.generate_dataset([name_file_reader], [name_file_cam],
+                                                            dataset_generator.generate_dataset_base)
+
+        regressor_dict = {
+            f'kNN_{name_file_reader}': KNeighborsRegressor(config.N_NEIGHBOURS, weights='distance')
+        }
+        ecdf_df = get_ecdf_dataset(x_train, x_test, y_train, y_test, regressor_dict)
+        ecdf_total = pd.concat([ecdf_total, ecdf_df], axis=1)
+
+    ecdf_total.plot.line(
+        title="ECDF per different Run",
+        xlabel="(m)",
+        ylabel="Empirical cumulative distribution function"
+    )
+
+
 if __name__ == "__main__":
     # X, y = utility.load_dataset_arff("datasetTrain0")
     # X, y = dataset_generator.generate_dataset_base_all()
@@ -122,39 +215,9 @@ if __name__ == "__main__":
     # X, y = dataset_generator.generate_dataset_with_mean_and_std_all()
     # x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.70)
     # plot_test_multi_regress(x_train, x_test, y_train, y_test, title_add="mean_std")
+    performance_test = 1
 
-    x_train, y_train = dataset_generator.generate_dataset_base("BLE2605r", "2605r0")
+    if performance_test == 0:
+        main_test_dataset_default_vs_dataset_mean_and_std()
 
-    X_a = []
-    y_a = []
-    x, y = dataset_generator.generate_dataset_base("dati3105run0r", "Cal3105run0")
-    X_a.append(x)
-    y_a.append(y)
-    x, y = dataset_generator.generate_dataset_base("dati3105run1r", "Cal3105run1")
-    X_a.append(x)
-    y_a.append(y)
-    x, y = dataset_generator.generate_dataset_base("dati3105run2r", "Cal3105run2")
-    X_a.append(x)
-    y_a.append(y)
-
-    x_test, y_test = dataset_generator.concatenate_dataset(X_a, y_a)
-
-    plot_test_multi_regress(x_train, x_test, y_train, y_test)
-
-    x_train, y_train = dataset_generator.generate_dataset_with_mean_and_std("BLE2605r", "2605r0")
-
-    X_a = []
-    y_a = []
-    x, y = dataset_generator.generate_dataset_with_mean_and_std("dati3105run0r", "Cal3105run0")
-    X_a.append(x)
-    y_a.append(y)
-    x, y = dataset_generator.generate_dataset_with_mean_and_std("dati3105run1r", "Cal3105run1")
-    X_a.append(x)
-    y_a.append(y)
-    x, y = dataset_generator.generate_dataset_with_mean_and_std("dati3105run2r", "Cal3105run2")
-    X_a.append(x)
-    y_a.append(y)
-
-    x_test, y_test = dataset_generator.concatenate_dataset(X_a, y_a)
-
-    plot_test_multi_regress(x_train, x_test, y_train, y_test, title_add="mean_std")
+    main_test_ecdf()

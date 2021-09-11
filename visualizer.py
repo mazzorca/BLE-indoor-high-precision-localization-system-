@@ -59,9 +59,13 @@ def plot_raw_and_kalman_rssi():
     df = pd.DataFrame(plot_dict)
 
     # df.plot.line(subplots=True)
-    df.plot.line()
+    df.plot.line(
+        title="Raw and filtered RSSI",
+        xlabel="Sample",
+        ylabel="RSSI(db)"
+    )
 
-    plt.savefig("raw_and_kalman_rssi.png")
+    plt.savefig("plots/raw_and_kalman_rssi.png")
 
 
 def different_kalman_filter():
@@ -134,8 +138,11 @@ def specific_kalman_filter(kalman_filters=None):
 def specific_kalman_filter_chunck(kalman_filters=None, selected_cut=0):
     raws_data, raws_time = data_extractor.get_raw_rssi_csv("BLE2605r")
     index_cut = utility.get_index_start_and_end_position(raws_time)
+    raw_chunks = utility.get_chunk(raws_data, index_cut)
 
     plot_dict = {}
+
+    raw_means, bounds_up, bounds_down = get_raws_means_and_bounds_for_plot(index_cut, raw_chunks)
 
     kalman_filter_par = config.KALMAN_BASE
 
@@ -147,7 +154,11 @@ def specific_kalman_filter_chunck(kalman_filters=None, selected_cut=0):
             kalman_filter_par['Q'] = Q
             kalman_data = utility.apply_kalman_filter(raws_data, kalman_filter_par)
             chunks = utility.get_chunk(kalman_data, index_cut, chunk_num=selected_cut)
-            plot_dict[f'{R}R {Q}Q'] = chunks[0]['RSSI Value'].tolist()
+            chunk = chunks[0]['RSSI Value'].tolist()
+            plot_dict[f'{R}R {Q}Q'] = chunk
+            # plot_dict['RSSI MEAN'] = raw_means[0][:len(chunk)]
+            # plot_dict['LIMIT UP'] = bounds_up[0][:len(chunk)]
+            # plot_dict['LIMIT DOWN'] = bounds_down[0][:len(chunk)]
     else:
         kalman_data = utility.apply_kalman_filter(raws_data, kalman_filter_par)
         chunks = utility.get_chunk(kalman_data, index_cut, chunk_num=selected_cut)
@@ -160,9 +171,13 @@ def specific_kalman_filter_chunck(kalman_filters=None, selected_cut=0):
     df = pd.DataFrame(plot_dict)
 
     # df.plot.line(subplots=True)
-    df.plot.line()
+    df.plot.line(
+        title="Extremes of kalman Filter",
+        xlabel="Sample",
+        ylabel="RSSI(db)"
+    )
 
-    plt.savefig("Kalman_difference_varing_.png")
+    plt.savefig("plots/Kalman_different_kalman_filter.png")
 
 
 def plot_dataset_without_outliers():
@@ -202,46 +217,48 @@ def get_raws_means_and_bounds_for_plot(index_cuts, raw_chunks):
         raw_means.append(raw_mean)
 
     for reader in raw_means:
-        bounds_up.append([elem + 1. for elem in reader])
-        bounds_down.append([elem - 1. for elem in reader])
+        bounds_up.append([elem + 2. for elem in reader])
+        bounds_down.append([elem - 2. for elem in reader])
 
     return raw_means, bounds_up, bounds_down
 
 
-def plot_y_dataset():
-    _, y_train = dataset_generator.generate_dataset_base("BLE2605r", "2605r0")
+def plot_y_dataset(name_files_reader=config.NAME_FILES, name_files_cam=config.CAM_FILES):
+    ax = plt.axes(title="Arrangement of points in the dataset")
+    colors = plt.get_cmap("viridis")(np.linspace(0, 1, len(name_files_reader)))
 
-    X_a = []
-    y_a = []
-    x, y = dataset_generator.generate_dataset_base("dati3105run0r", "Cal3105run0")
-    X_a.append(x)
-    y_a.append(y)
-    x, y = dataset_generator.generate_dataset_base("dati3105run1r", "Cal3105run1")
-    X_a.append(x)
-    y_a.append(y)
-    x, y = dataset_generator.generate_dataset_base("dati3105run2r", "Cal3105run2")
-    X_a.append(x)
-    y_a.append(y)
+    i = 0
+    for name_file_reader, name_file_cam in zip(name_files_reader, name_files_cam):
+        _, y = dataset_generator.generate_dataset_base(name_file_reader, name_file_cam)
+        p_x, p_y = utility.pol2cart(y[:, 0], y[:, 1])
+        y = np.column_stack([p_x, p_y])
+        df = pd.DataFrame(y, columns=["x(m)", "y(m)"])
+        df.plot.scatter(x='x(m)', y="y(m)", ax=ax, color=colors[i], label=f'run{i}')
+        i += 1
 
-    _, y_test = dataset_generator.concatenate_dataset(X_a, y_a)
+    plt.show()
 
-    c = [0 for _ in range(y_train.shape[0])]
-    x, y = utility.pol2cart(y_train[:, 0], y_train[:, 1])
-    y_train = np.column_stack([x, y])
-    y_train = np.column_stack([y_train, c])
-    c = [1 for _ in range(y_test.shape[0])]
-    x, y = utility.pol2cart(y_test[:, 0], y_test[:, 1])
-    y_test = np.column_stack([x, y])
-    y_test = np.column_stack([y_test, c])
+    plt.savefig('plots/dataset_y.png')
 
-    y = np.concatenate((y_train, y_test))
 
-    df = pd.DataFrame(y, columns=["x", "y", "c"])
-    df.plot.scatter(x='x', y='y', c='c', colormap='viridis')
+def plot_good_points():
+    df = pd.read_excel("kpc/kpc-good_points3.xlsx")
+    df.plot.hexbin(x='R', y='Q', C='Nearest Neighbors D',
+                   reduce_C_function=np.min,
+                   gridsize=25,
+                   cmap="viridis")
+    df.plot.hexbin(x='R', y='Q', C='Nearest Neighbors D',
+                   reduce_C_function=np.max,
+                   gridsize=25,
+                   cmap="viridis")
+    df.plot.hexbin(x='R', y='Q', C='Nearest Neighbors D',
+                   reduce_C_function=np.mean,
+                   gridsize=25,
+                   cmap="viridis")
 
 
 if __name__ == "__main__":
-    visualize = 2
+    visualize = 7
 
     if visualize == 0:
         plot_kalman_rssi()
@@ -263,3 +280,5 @@ if __name__ == "__main__":
 
     if visualize == 6:
         plot_y_dataset()
+
+    plot_good_points()

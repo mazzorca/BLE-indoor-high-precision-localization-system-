@@ -12,13 +12,13 @@ import dataset_generator
 
 # Experiment Set-up
 INITIAL_R = 0.01
-INITIAL_Q = 0.00001
+INITIAL_Q = 0.000001
 
-FINAL_R = 0.1
+FINAL_R = 0.01
 FINAL_Q = 0.0001
 
-NUM_R = 11
-NUM_Q = 21
+NUM_R = 1
+NUM_Q = 100
 
 WINDOWS_SIZE = 50
 
@@ -56,8 +56,7 @@ def get_settling_sample(kalman_chunks, raw_chunks):
 
 def kalman_settling_sample_comparator(specific_kalman_filters=None, enable_regress_comparator=False):
     """
-
-    :param specific_kalman_filters: list of kalman filters
+    :param specific_kalman_filters: dataframe with kalman filters
     :param enable_regress_comparator: add to the df, the regressor error IQR and Median
     :return:
     """
@@ -127,7 +126,7 @@ def kalman_settling_sample_comparator(specific_kalman_filters=None, enable_regre
     experiment_df = pd.DataFrame(experiment_dict)
     experiment_df.set_index(['R', 'Q'])
 
-    experiment_df.to_excel("kalman_parameter_comparison-settling_sample.xlsx")
+    experiment_df.to_excel("kpc/kpc-settling_sample.xlsx")
 
 
 def get_raws_data_runs_all():
@@ -143,10 +142,13 @@ def get_raws_data_runs_all():
     return raws_runs_data, raws_runs_time
 
 
-def get_best_good_points(how_many, file_excel):
+def get_best_good_points(percentage, file_excel):
     df_total = pd.read_excel(file_excel)
-    df_sorted = df_total.nlargest(how_many, ["Nearest Neighbors D", "Nearest Neighbors U"])
-    return df_sorted
+    max_good_points = df_total['Nearest Neighbors D'].max()
+    limit_down = (max_good_points / 100) * percentage
+    df_filtered = df_total[df_total['Nearest Neighbors D'] > limit_down]
+    # df_sorted = df_total.nlargest(how_many, ["Nearest Neighbors D", "Nearest Neighbors U"])
+    return df_filtered
 
 
 def get_kalman_good_point():
@@ -198,10 +200,10 @@ def get_kalman_good_point():
     experiment_df = pd.DataFrame(experiment_dict)
     experiment_df.set_index(['R', 'Q'])
 
-    experiment_df.to_excel("kpc-good_points.xlsx")
+    experiment_df.to_excel("kpc/kpc-good_pointsQ.xlsx")
 
 
 if __name__ == "__main__":
-    # df = get_best_good_points(20, "kalman_parameter_comparator-good_points-bk.xlsx")
+    # df = get_best_good_points(99.9, "kpc/kpc-good_points3.xlsx")
     # kalman_settling_sample_comparator(df[['Q', 'R']])
     get_kalman_good_point()

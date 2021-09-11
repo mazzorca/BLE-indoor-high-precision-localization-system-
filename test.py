@@ -29,9 +29,9 @@ if __name__ == "__main__":
     # visualizer.specific_kalman_filter(df[['Q', 'R']])
 
     kalman_filters_dict = {
-        'Q': [0.00001, 0.00001],
-        'R': [0.01, 0.1]
+        'Q': [0.0001, 0.00001, 0.00001],
+        'R': [0.001, 0.01, 1]
     }
 
     df = pd.DataFrame(kalman_filters_dict)
-    visualizer.specific_kalman_filter_chunck(df)
+    visualizer.specific_kalman_filter_chunck(df, selected_cut=9)

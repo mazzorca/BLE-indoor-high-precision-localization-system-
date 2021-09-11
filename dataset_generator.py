@@ -126,6 +126,19 @@ def generate_dataset_with_mean_and_std_all():
     return X, y
 
 
+def generate_dataset(name_file_reader, name_file_cam, type_of_dataset):
+    X_a = []
+    y_a = []
+    for name_file, cam_file in zip(name_file_reader, name_file_cam):
+        x_r, y_r = type_of_dataset(name_file, cam_file)
+        X_a.append(x_r)
+        y_a.append(y_r)
+
+    X, y = concatenate_dataset(X_a, y_a)
+
+    return X, y
+
+
 if __name__ == "__main__":
     datiCSV1, datiEMT1 = utility.takeData("dati3105run0r", "Cal3105run0")
     utility.printDati(datiCSV1, datiEMT1)
