@@ -13,13 +13,14 @@ import Configuration.cnn_config as cnn_conf
 import config
 
 
-dir = "20x20-10"
-testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
-type_dist = 1
+def load_model(model, parameters_saved):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    model.load_state_dict(torch.load(f"cnns/{parameters_saved}.pth", map_location=torch.device(device)))
+    return model
 
 
-def write_cnn_result(model_name, dataset, preds, ys):
-    base_file_name = f'cnn_results/{dir}/{type_dist}.{model_name}-{dataset}'
+def write_cnn_result(base_file_name, preds, ys):
     utility.check_and_if_not_exists_create_folder(base_file_name)
 
     with open(f"{base_file_name}_p.npy", 'wb') as f:
@@ -63,20 +64,25 @@ def euclidean_pred_and_optimal(preds, ps, probabilities, p):
 
 
 def square_pred_and_optimal(preds, ys, probabilities, y):
+    y = y.numpy()
     ys = np.concatenate([ys, y])
 
-    probabilities_np = probabilities.numpy().argsort()[:, -cnn_conf.NUMBER_ARGMAX_SQUARE:]
+    probabilities_np = probabilities.argmax(1).numpy()
+    # probabilities_np = probabilities.numpy().argsort()[:, -cnn_conf.NUMBER_ARGMAX_SQUARE:]
 
-    reshape_size = batch_size if batch_size < probabilities_np.shape[0] else probabilities_np.shape[0]
-    probabilities_np = probabilities_np.reshape(reshape_size)
+    # reshape_size = batch_size if batch_size < probabilities_np.shape[0] else probabilities_np.shape[0]
+    # probabilities_np = probabilities_np.reshape(reshape_size)
+
     preds = np.concatenate([preds, probabilities_np])
-
     return preds, ys
 
 
-def cnn_test(model, dataset, transform, batch_size, device):
-    test_set = RSSIImagesDataset(csv_file=f"datasets/cnn_dataset/{dataset}/RSSI_images.csv",
-                                 root_dir=f"datasets/cnn_dataset/{dataset}/RSSI_images",
+def cnn_test(model, dataset, transform, batch_size, type_dist):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(device)
+
+    test_set = RSSIImagesDataset(csv_file=f"datasets/cnn_dataset/{dir}/{dataset}/RSSI_images.csv",
+                                 root_dir=f"datasets/cnn_dataset/{dir}/{dataset}/RSSI_images",
                                  transform=transform)
 
     test_loader = DataLoader(dataset=test_set,
@@ -111,8 +117,13 @@ def cnn_test(model, dataset, transform, batch_size, device):
 
 
 if __name__ == '__main__':
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(device)
+    wxh = "20x20-10"
+    testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
+    type_dist = 1
+
+    epoch = 10
+    lr = 0.01
+    bs = 32
 
     batch_size = 10
 
@@ -122,9 +133,11 @@ if __name__ == '__main__':
 
         model = cnn_conf.MODELS[model_name]['model']
         transform = cnn_conf.MODELS[model_name]['transform']
-        model.load_state_dict(torch.load(f"cnns/{model_name}.pth", map_location=torch.device(device)))
+        parameters_saved = "ble/20-0.01-32-5x60-10"
+        model = load_model(model, parameters_saved)
 
         for dataset_name in testing_dataset:
             print(f'testing {model_name} on {dataset_name} dataset')
-            preds, ys = cnn_test(model, dataset_name, transform, batch_size, device)
-            write_cnn_result(model_name, dataset_name, preds, ys)
+            preds, ys = cnn_test(model, dataset_name, transform, batch_size, type_dist)
+            base_file_name = f'cnn_results/{model_name}/{type_dist}.{epoch}-{lr}-{bs}-{wxh}-{dataset_name}'
+            write_cnn_result(base_file_name, preds, ys)

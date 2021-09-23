@@ -26,7 +26,7 @@ if __name__ == "__main__":
     #     [5, 60, 10]
     # ]
 
-    params = [[20, 20, 10]]
+    params = [[5, 60, 10]]
 
     for param in params:
         print("w:", param[0], "h:", param[1], "stride:", param[2])

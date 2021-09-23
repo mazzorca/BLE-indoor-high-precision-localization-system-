@@ -15,7 +15,7 @@ import os
 import Configuration.cnn_config as cnn_conf
 
 
-def train_model(model, dataset, transform, batch_size, learning_rate, save_name):
+def train_model(model, wxh, dataset, transform, epochs, learning_rate, batch_size, model_name):
     device = "cpu"
     if torch.cuda.is_available():
         device = "cuda:0"
@@ -37,7 +37,7 @@ def train_model(model, dataset, transform, batch_size, learning_rate, save_name)
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
 
-    for epoch in range(10):
+    for epoch in range(epochs):
         running_loss = 0.0
         for i, data in enumerate(train_loader):
             inputs, labels = data[0].to(device), data[1].to(device)
@@ -59,6 +59,7 @@ def train_model(model, dataset, transform, batch_size, learning_rate, save_name)
 
         torch.cuda.empty_cache()
 
+    save_name = f"{model_name}/{epochs}-{learning_rate}-{batch_size}-{wxh}"
     print('Finished Training of:', save_name)
 
     PATH = f'cnns/{save_name}.pth'
@@ -79,4 +80,4 @@ if __name__ == '__main__':
 
         model = cnn_conf.MODELS[model_name]['model']
         transform = cnn_conf.MODELS[model_name]['transform']
-        train_model(model, "20x20-10/BLE2605r", transform, batch_size, 0.001, model_name)
+        train_model(model, "20x20-10", "BLE2605r", transform, batch_size, 0.001, model_name)

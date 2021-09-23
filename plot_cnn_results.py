@@ -11,11 +11,9 @@ import testMultiRegress
 import dataset_generator
 
 # testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
-testing_dataset = ["dati3105run0r"]
-
-
+# testing_dataset = ["dati3105run0r"]
 # testing_dataset = ["dati3105run1r"]
-# testing_dataset = ["dati3105run2r"]
+testing_dataset = ["dati3105run2r"]
 
 
 def load_cnn_results(p_file, o_filee):
@@ -63,7 +61,7 @@ def compare_cnns_with_ecdf(experiment_list, dir, models=None, what_type_of_ecdf=
 
     name_plot = ' '.join(experiment_list)
     if what_type_of_ecdf == 0:
-        ecdf_total = compare_cnns_with_ecdf_euclidean(models, experiment_list, dir, name_plot)
+        ecdf_total = compare_cnns_with_ecdf_euclidean(models, experiment_list, dir)
 
         ecdf_total.plot.line(
             title=f"ECDF {name_plot}",
@@ -76,7 +74,7 @@ def compare_cnns_with_ecdf(experiment_list, dir, models=None, what_type_of_ecdf=
         fig, ax = plt.subplots()
         ax.set_title(f"ECDF {name_plot}")
 
-        ax = compare_cnns_with_ecdf_square(models, experiment_list, dir, name_plot, ax)
+        ax = compare_cnns_with_ecdf_square(models, experiment_list, dir, ax)
 
         plt.legend(loc='lower right')
         plt.show()
@@ -155,9 +153,12 @@ def compare_with_regressors_square(experiment_list, dir):
     models = [cnn_name for cnn_name in cnn_conf.active_moodels if cnn_conf.active_moodels[cnn_name]]
 
     fig, ax = plt.subplots()
-    ax = compare_cnns_with_ecdf_square(models, experiment_list, dir, ax)
 
     name_plot = ' '.join(experiment_list)
+    ax.set_title(f"ECDF {name_plot}")
+
+    ax = compare_cnns_with_ecdf_square(models, experiment_list, dir, ax)
+
     dataset_tests = dataset_generator.dataset_tests[name_plot]
     train_dataset = dataset_generator.load_dataset_numpy_file("x_train", "y_train")
     test_dataset = dataset_generator.load_dataset_numpy_file(dataset_tests[0], dataset_tests[1])
@@ -176,10 +177,10 @@ if __name__ == '__main__':
     choise = 1
 
     if plots == 0:
-        compare_cnns_with_ecdf(testing_dataset, "20x20-10", what_type_of_ecdf=0)
+        compare_cnns_with_ecdf(testing_dataset, "20x20-10", what_type_of_ecdf=choise)
 
     if plots == 1:
         if choise == 0:
-            compare_with_regressors_euclidean(testing_dataset, "20x20-10")
+            compare_with_regressors_euclidean(testing_dataset, "5x60-10")
         if choise == 1:
-            compare_with_regressors_square(testing_dataset, "20x20-10")
+            compare_with_regressors_square(testing_dataset, "5x60-10")
