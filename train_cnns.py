@@ -25,8 +25,8 @@ def train_model(model, wxh, dataset, transform, epochs, learning_rate, batch_siz
 
     print(device)
 
-    train_set = RSSIImagesDataset(csv_file=f"datasets/cnn_dataset/{dataset}/RSSI_images.csv",
-                                  root_dir=f"datasets/cnn_dataset/{dataset}/RSSI_images",
+    train_set = RSSIImagesDataset(csv_file=f"datasets/cnn_dataset/{wxh}/{dataset}/RSSI_images.csv",
+                                  root_dir=f"datasets/cnn_dataset/{wxh}/{dataset}/RSSI_images",
                                   transform=transform)
 
     train_loader = DataLoader(dataset=train_set,
@@ -73,6 +73,8 @@ if __name__ == '__main__':
         lambda y: torch.zeros(18, dtype=torch.float).scatter_(dim=0, index=torch.tensor(y), value=1))
 
     batch_size = 64
+    learning_rate = 0.001
+    epochs = 20
 
     for model_name in cnn_conf.MODELS:
         if not cnn_conf.active_moodels[model_name]:
@@ -80,4 +82,4 @@ if __name__ == '__main__':
 
         model = cnn_conf.MODELS[model_name]['model']
         transform = cnn_conf.MODELS[model_name]['transform']
-        train_model(model, "20x20-10", "BLE2605r", transform, batch_size, 0.001, model_name)
+        train_model(model, "20x20-10", "BLE2605r", transform, epochs, learning_rate, batch_size, model_name)

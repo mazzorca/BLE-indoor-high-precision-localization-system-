@@ -36,7 +36,7 @@ def euclidean_pred_and_optimal(preds, ps, probabilities, p):
     point = np.column_stack([xs, ys])
     ps = np.concatenate([ps, point])
 
-    probabilities_np = probabilities.numpy()
+    probabilities_np = probabilities.cpu().numpy()
     indexs_np = probabilities_np.argsort()[:, -cnn_conf.NUMBER_ARGMAX_EUCLIDEAN:]
 
     xs = []
@@ -64,7 +64,7 @@ def euclidean_pred_and_optimal(preds, ps, probabilities, p):
 
 
 def square_pred_and_optimal(preds, ys, probabilities, y):
-    y = y.numpy()
+    y = y.cpu().numpy()
     ys = np.concatenate([ys, y])
 
     probabilities_np = probabilities.argmax(1).numpy()

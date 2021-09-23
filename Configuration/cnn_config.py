@@ -29,20 +29,12 @@ MODELS = {
         'model': torchvision.models.alexnet(num_classes=18),
         'transform': transform_base_rgb
     },
-    'googlenet': {
-        'model': torchvision.models.googlenet(num_classes=18),
-        'transform': transform_base_rgb
-    },
     'resnet50': {
         'model': torchvision.models.resnet50(num_classes=18),
         'transform': transform_base_rgb
     },
     'squeezenet': {
         'model': torchvision.models.squeezenet1_0(num_classes=18),
-        'transform': transform_base_rgb
-    },
-    'inceptionv3': {
-        'model': torchvision.models.inception_v3(num_classes=18),
         'transform': transform_base_rgb
     },
     'mobilenet_v3_small': {
@@ -80,10 +72,8 @@ MODELS = {
 
 active_moodels = {
         'alexnet': False,
-        'googlenet': False,
         'resnet50': False,
         'squeezenet': False,
-        'inceptionv3': False,
         'mobilenet_v3_small': False,
         'rfid': False,
         'wifi': False,

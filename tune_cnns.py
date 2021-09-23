@@ -17,6 +17,9 @@ import Configuration.cnn_config as cnn_conf
 
 
 def tune_train_model(config, data_dir=None, checkpoint_dir=None):
+    gc.collect()
+    os.system("rm -rf /home/ubuntu/ray_results/")
+
     model = cnn_conf.MODELS['rfid']['model']
     transform = cnn_conf.MODELS['rfid']['transform']
 
@@ -108,8 +111,6 @@ def tune_train_model(config, data_dir=None, checkpoint_dir=None):
 
     print('Finished Training of:', dir)
 
-    gc.collect()
-
 
 def main(num_samples, max_num_epochs):
     data_dir = os.path.abspath("./")
@@ -151,4 +152,4 @@ def main(num_samples, max_num_epochs):
 
 
 if __name__ == '__main__':
-    main(num_samples=1, max_num_epochs=10)
+    main(num_samples=1, max_num_epochs=20)
