@@ -1,43 +1,23 @@
+from shapely.geometry import Point
+
+import os
+import errno
+import csv
+
 import config
 import data_extractor
 import numpy as np
 from pylab import ylim, title, ylabel, xlabel
 import matplotlib.pyplot as plt
-from kalman import SingleStateKalmanFilter
-from moving_average import MovingAverageFilter
-import csv
+
+from data_converter import fixReader, cutReader, create_kalman_filter
 import pandas as pd
 from scipy.io import arff
-import sys
 import random
-import math
-import time
 import arff
-from filterpy.kalman import KalmanFilter
-from moving_average import MovingAverageFilter
-import matplotlib.animation
 
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
-from sklearn.ensemble import RandomForestRegressor
-
-import tensorflow as tf
-import os
-
-from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import KFold
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, Flatten
-from tensorflow.keras.layers import Conv2D, MaxPooling2D
-import tensorflow.keras
-from scipy.optimize import curve_fit
-from tensorflow.keras.models import load_model
-from keras import layers
-from keras import Input
-from keras.models import Model
 
 
 # from keras.utils import to_categorical
@@ -68,6 +48,23 @@ def pol2cartS(rho, phi):
     x = rho * np.cos(phi)
     y = rho * np.sin(phi)
     return x, y
+
+
+def get_euclidean_distance(a_x, a_y):
+    lox = a_x[:, 0]
+    loy = a_x[:, 1]
+    lpx = a_y[:, 0]
+    lpy = a_y[:, 1]
+
+    error_x = abs(np.subtract(lpx, lox))
+    error_y = abs(np.subtract(lpy, loy))
+
+    error_x = np.power(error_x, 2)
+    error_y = np.power(error_y, 2)
+    errors = np.add(error_x, error_y)
+    errors = np.sqrt(errors)
+
+    return errors
 
 
 def equalize_data_with_nan(data):
@@ -373,16 +370,6 @@ def convertEMT(namefile):
     return dataSplitNew
 
 
-def create_kalman_filter(kalman_filter_par):
-    kalman_filter = KalmanFilter(dim_x=1, dim_z=1)
-    kalman_filter.F = np.array([[kalman_filter_par['A']]])
-    kalman_filter.H = np.array([[kalman_filter_par['C']]])
-    kalman_filter.R = np.array([[kalman_filter_par['R']]])
-    kalman_filter.Q = np.array([[kalman_filter_par['Q']]])
-
-    return kalman_filter
-
-
 # funzione per la conversione dei dati da file .csv dai 5 reader in una lista di array [R1,R2,R3,R4,R5]
 # effettuo il filtraggio dei dati con il filtro di kalman e restituisco i dati filtrati e il timestamp
 def extract_and_apply_kalman_csv(namefile, kalman_filter_par=None):
@@ -411,30 +398,6 @@ def extract_and_apply_kalman_csv(namefile, kalman_filter_par=None):
             dataset[i].append(kalman_filter.x[0])
 
     return dataset, dataset_time
-
-
-def apply_kalman_filter(no_kalman_data, kalman_filter_par):
-    """
-    Apply  the kalman filter on the raw data
-    :param no_kalman_data:
-    :type kalman_filter_par: dict
-    """
-    kalman_data = []
-
-    kalman_filter = create_kalman_filter(kalman_filter_par)
-
-    for i, raw_data_reader in enumerate(no_kalman_data):
-        # reset the filter
-        kalman_filter.x = np.array([kalman_filter_par['x']])
-        kalman_filter.P = np.array([[kalman_filter_par['P']]])
-
-        kalman_data.append([])
-        for raw_value in raw_data_reader:
-            kalman_filter.predict()
-            kalman_filter.update(raw_value)
-            kalman_data[i].append(kalman_filter.x[0])
-
-    return kalman_data
 
 
 def get_chunk(rssi_data, index_cut, chunk_num=-1):
@@ -485,34 +448,6 @@ def get_index_start_and_end_position(time):
     return indextaglio_reader
 
 
-def get_index_taglio(tele):
-    indextaglio = [100]
-    for i in range(len(tele[2]) - 1):  # len(tele[2]) = lunghezza valori nella x
-        if (abs(tele[2][i] - tele[2][i + 1]) > 0.1) | (abs(tele[3][i] - tele[3][i + 1]) > 0.1):
-            indextaglio.append(i)
-
-    indextaglio.append(len(tele[2]) - 1)
-
-    return indextaglio
-
-
-def get_index_taglio_reader(time):
-    indextaglio_reader = []
-
-    for j in range(5):
-        indextaglio_reader.append([0])
-        for i in range(len(time[j]) - 1):
-            if abs(time[j][i] - time[j][i + 1]) > 5:  # 5 secondi
-                indextaglio_reader[j].append(i)
-        indextaglio_reader[j].append(len(time[j]) - 1)
-
-    for j in range(2):
-        for i in range(len(indextaglio_reader)):
-            indextaglio_reader.append(indextaglio_reader[i])
-
-    return indextaglio_reader
-
-
 def remove_outliers(kalman_chunks, bounds_ups, bounds_downs):
     data_without_outliers = []
     for i, chunks in enumerate(kalman_chunks):
@@ -541,71 +476,6 @@ def add_mean_and_std(kalman_data, raw_chunks):
     kalman_data.extend(stds)
 
     return kalman_data
-
-
-# Funzione per il taglio dei dati provenienti dai 5 reader, andando ad allineare nel tempo i dati raccolti dalle
-# telecamere e i dati raccolti dai reader nel tempo
-def fixReader(dati, time, tele):
-    newData = []
-    newTime = []
-
-    indextaglio = get_index_taglio(tele)
-    indextaglio_reader = get_index_taglio_reader(time)
-
-    if len(indextaglio) < len(indextaglio_reader[0]):
-        for index in indextaglio_reader:
-            index.remove(index[0])
-
-    for i in range(len(dati)):
-        newData.append([])
-        newTime.append([])
-        for j in range(len(indextaglio_reader[i]) - 1):
-            tot_data_inserted = 0
-            dim_data_reader = indextaglio_reader[i][j + 1] - indextaglio_reader[i][j]  # dimensione dei dati raccolti
-            # nel punto j-esimo dal BLE
-            dim_data_tele = indextaglio[j + 1] - indextaglio[j]  # dimensione dei dati raccolti nel punto j-esimo
-            # dalle tele
-            fattore = math.trunc(dim_data_tele / dim_data_reader)
-
-            for t in range(dim_data_reader):
-                for x in range(fattore + 1):
-                    if tot_data_inserted < dim_data_tele:
-                        newData[i].append(dati[i][indextaglio_reader[i][j] + t])
-                        newTime[i].append(time[i % 5][indextaglio_reader[i][j] + t])
-                        tot_data_inserted = tot_data_inserted + 1
-
-    return newData, newTime, indextaglio
-
-
-# funziona per il taglio dei dati per via del ritardo che introduce il filtro di kalman
-def cutReader(dati, tele, ind):
-    newData = [[] for _ in range(len(dati))]
-    newTele = [[] for _ in range(2)]
-    new_data = [0 for _ in range(len(dati))]
-    old_data = [0 for _ in range(len(dati))]
-
-    for j in range(len(ind) - 1):
-        dim = ind[j + 1] - ind[j]
-        offset = math.trunc(dim / 3)
-        # print(offset)
-        lun = offset
-        for t in range(lun):
-            for i in range(len(dati)):
-                if ind[j] + offset + t < len(dati[i]):
-                    new_data[i] = dati[i][ind[j] + offset + t]
-
-            # np.isnan, is for mean and std dataset
-            if not np.array_equal(new_data, old_data) and not np.isnan(np.min(new_data)):
-                for i in range(len(dati)):
-                    newData[i].append(dati[i][ind[j] + offset + t])
-                for i in range(len(new_data)):
-                    old_data[i] = new_data[i]
-                newTele[0].append(tele[2][ind[j] + offset + t])
-                newTele[1].append(tele[3][ind[j] + offset + t])
-
-    # for i in range (5):
-    # print(len(newData[i]))
-    return newData, newTele
 
 
 def evalueteAll(dati, regress):
@@ -669,7 +539,7 @@ def convert2Point(ottimo):
 
 
 def saveDataArff(dati, ottimo, name):
-    filep = "dataset" + name + "p.arff"
+    filep = "datasets/arff/dataset" + name + "p.arff"
     with open(filep, "w") as fp:
         fp.write('''@RELATION point
 
@@ -683,7 +553,7 @@ def saveDataArff(dati, ottimo, name):
     @DATA
     ''')
 
-    filex = "dataset" + name + "x0.arff"
+    filex = "datasets/arff/dataset" + name + "x0.arff"
     with open(filex, "w") as fp:
         fp.write('''@RELATION point
 
@@ -697,7 +567,7 @@ def saveDataArff(dati, ottimo, name):
     @DATA
     ''')
 
-    filey = "dataset" + name + "y0.arff"
+    filey = "datasets/arff/dataset" + name + "y0.arff"
     with open(filey, "w") as fp:
         fp.write('''@RELATION point
 
@@ -735,7 +605,7 @@ def takeData(nameCSV, nameEMT):
     datiReaderNew, datiTimeReaderNew, indtaglio = fixReader(datiReader, datiTimeReader, datiTele)
 
     # printDati(datiReaderNew,(datiTele[2],datiTele[3]))
-    datiReaderCut, datiTeleCut = cutReader(datiReaderNew, datiTele, indtaglio)
+    datiReaderCut, datiTeleCut, _ = cutReader(datiReaderNew, datiTele, indtaglio)
 
     return datiReaderCut, datiTeleCut
 
@@ -755,3 +625,52 @@ def load_dataset_arff(dataset_name):
     y = np.column_stack([ry, py])
 
     return X, y
+
+
+def get_square_number_array(lx, ly):
+    squares = config.SQUARES
+
+    squares_x = []
+    squares_y = []
+    for x, y in zip(lx, ly):
+        square_x, square_y = get_square_number(x, y, squares)
+
+        squares_x.append(square_x)
+        squares_y.append(square_y)
+
+    return squares_x, squares_y
+
+
+def get_squarex_and_squarey(i):
+    square_x = i % 6
+    square_y = int(i / 6)
+
+    return square_x, square_y
+
+
+def get_square_number(x, y, squares):
+    point = Point(x, y)
+
+    i = 0
+    for i in range(len(squares)):
+        if squares[i].contains(point):
+            break
+
+    square_x, square_y = get_squarex_and_squarey(i)
+
+    return square_x, square_y
+
+
+def check_and_if_not_exists_create_folder(filename):
+    if not os.path.exists(os.path.dirname(filename)):
+        try:
+            os.makedirs(os.path.dirname(filename))
+        except OSError as exc:
+            if exc.errno != errno.EEXIST:
+                raise
+
+
+def append_to_csv(file_name_csv, row_to_append):
+    with open(file_name_csv, 'a') as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerows(row_to_append)

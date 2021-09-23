@@ -1,4 +1,10 @@
 dati/
+cnn_results/
+datasets/
+kpc/
+plots/
+cnns/
+pytorch_tutorial/
 .idea/
 __pycache__/
 

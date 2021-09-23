@@ -96,3 +96,46 @@ def cutReader_backup(dati, tele, ind):
     # for i in range (5):
     # print(len(newData[i]))
     return newData, newTele
+
+
+def get_ecdf_dataset_back(x_train, x_test, y_train, y_test, regressors=None):
+    if regressors is None:
+        regressors = CLASSIFIERS_DICT
+
+    lox, loy = regressors_lib.get_optimal_points(y_test)
+
+    bins = [0.01 * i for i in range(60)]
+    ecdf_dict = {}
+    for regressor_name in regressors:
+        regressors[regressor_name].fit(x_train, y_train)
+        Z = regressors[regressor_name].predict(x_test)
+
+        lpr = Z[:, 0]
+        lpp = Z[:, 1]
+        lpx, lpy = utility.pol2cart(lpr, lpp)
+
+        error_x = abs(np.subtract(lpx, lox))
+        error_y = abs(np.subtract(lpy, loy))
+
+        error_x = np.power(error_x, 2)
+        error_y = np.power(error_y, 2)
+        errors = np.add(error_x, error_y)
+        errors = np.sqrt(errors)
+
+        ecdf = [0]
+        unit = 1 / len(errors)
+        hist = np.histogram(errors, bins)
+        cumul_sum = 0
+        for i in hist[0]:
+            increment = unit * i
+            cumul_sum += increment
+            ecdf.append(cumul_sum)
+        ecdf.append(1)
+
+        ecdf_dict[f'ecdf_{regressor_name}'] = ecdf
+
+    bins = [str(bin_elem) for bin_elem in bins]
+    bins.append("0.60+")
+    df = pd.DataFrame(ecdf_dict, index=bins)
+
+    return df

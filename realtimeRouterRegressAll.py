@@ -135,10 +135,10 @@ if __name__ == '__main__':
 
     # datasetRX = arff.load(open('datasetTele1006ALLx0.arff'))
 
-    datasetRY = arff.load(open('datasetTrain0y0.arff'))
+    datasetRY = arff.load(open('datasets/arff/datasetTrain0y0.arff'))
     dataRY = np.array(datasetRY['data'])
 
-    datasetRX = arff.load(open('datasetTrain0x0.arff'))
+    datasetRX = arff.load(open('datasets/arff/datasetTrain0x0.arff'))
     dataRX = np.array(datasetRX['data'])
 
     X = dataRX[:, :5]

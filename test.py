@@ -1,37 +1,45 @@
-import pandas as pd
+import config
+import data_converter
+from dataset_generator import create_image_dataset
+from cnns_models.ble_cnn import BLEcnn
+from torchinfo import summary
 
 import utility
-import dataset_generator
-import numpy as np
-from sklearn.model_selection import train_test_split
-
-import config
-import testMultiRegress
-import visualizer
-import kalman_parameter_comparator
+import data_extractor
+import RSSI_image_converter
 
 if __name__ == "__main__":
-    # dataset, dataset_time = utility.extract_and_apply_kalman_csv("BLE2605r")
-    # reader_cut, cam_cut = dataset_generator.get_processed_data_from_a_kalman_data(dataset, dataset_time, "2605r0")
-    # dataset_generator.generate_dataset_from_final_data(reader_cut, cam_cut)
+    # name_files_reader = ["BLE2605r"]
+    # name_files_cam = ["2605r0"]
 
-    # X_a = []
-    # y_a = []
-    # for name_file, cam_file in zip(config.NAME_FILES, config.CAM_FILES):
-    #     X_r, y_r = dataset_generator.generate_dataset_with_mean_and_std(name_file, cam_file)
-    #     X_a.append(X_r)
-    #     y_a.append(y_r)
-    #
-    # X, y = dataset_generator.concatenate_dataset(X_a, y_a)
-    # x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.20)
+    # params = [
+    #     [15, 15, 3],
+    #     [15, 15, 10],
+    #     [20, 20, 3],
+    #     [20, 20, 10],
+    #     [25, 25, 3],
+    #     [25, 25, 10],
+    #     [5, 45, 1],
+    #     [5, 45, 3],
+    #     [5, 45, 10],
+    #     [5, 60, 3],
+    #     [5, 60, 10]
+    # ]
 
-    # df = kalman_parameter_comparator.get_best_good_points(10, "kpc-good_points.xlsx")
-    # visualizer.specific_kalman_filter(df[['Q', 'R']])
+    params = [[20, 20, 10]]
 
-    kalman_filters_dict = {
-        'Q': [0.0001, 0.00001, 0.00001],
-        'R': [0.001, 0.01, 1]
-    }
+    for param in params:
+        print("w:", param[0], "h:", param[1], "stride:", param[2])
+        for name_file_reader, name_file_cam in zip(config.NAME_FILES, config.CAM_FILES):
+            create_image_dataset(name_file_reader, name_file_cam, param[0], param[1], param[2])
 
-    df = pd.DataFrame(kalman_filters_dict)
-    visualizer.specific_kalman_filter_chunck(df, selected_cut=9)
+    # net = BLEcnn()
+    # print(summary(net, input_size=(1, 1, 24, 24)))
+
+    # raws_data, time = data_extractor.get_raw_rssi_csv("dati3105run2r")
+    # kalman_filter_par = config.KALMAN_BASE
+    # kalman_data = data_converter.apply_kalman_filter(raws_data, kalman_filter_par)
+    # max, min = RSSI_image_converter.get_max_and_min_of_data(kalman_data)
+    # print("max", max, "min", min)
+
+

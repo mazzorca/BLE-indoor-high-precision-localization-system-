@@ -30,3 +30,15 @@ def plot(plot_name, data, num_row, num_col):
     fig.suptitle(plot_name)
     plt.tight_layout(pad=0)
     plt.show()
+
+
+def add_grid_meters(ax):
+    major_ticks_x = np.arange(0, 1.81, 0.30)
+    major_ticks_y = np.arange(0, 0.91, 0.30)
+
+    ax.set_xticks(major_ticks_x)
+    ax.set_yticks(major_ticks_y)
+
+    ax.grid(which='both')
+
+    return ax

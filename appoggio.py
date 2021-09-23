@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 import config
+import data_converter
 import testMultiRegress
 import utility
 import data_extractor
@@ -112,7 +113,7 @@ if __name__ == "__main__":
             print('Completed:', f'{complete_percentage}%')
 
             for raws_data, raw_time, cam_file in zip(raws_run, raws_time, cam_files):
-                kalman_data = utility.apply_kalman_filter(raws_data, kalman_filter_par)
+                kalman_data = data_converter.apply_kalman_filter(raws_data, kalman_filter_par)
 
                 if WHAT_TO_OUTPUT["SETTLING_TIME"]:
                     experiment_dict['SETTLING_SAMPLE_AVG'] = []

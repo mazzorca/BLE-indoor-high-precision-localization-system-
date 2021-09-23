@@ -1,15 +1,24 @@
 import pandas as pd
 import numpy as np
 
+import RSSI_image_converter
+import data_converter
 import utility
 import data_extractor
 import config
 
+dataset_tests = {
+    "dati3105run0r dati3105run1r dati3105run2r": ["x_test", "y_test"],
+    "dati3105run0r": ["x_test0", "y_test0"],
+    "dati3105run1r": ["x_test1", "y_test1"],
+    "dati3105run2r": ["x_test2", "y_test2"]
+}
+
 
 def get_processed_data_from_a_kalman_data(kalman_data, time, name_file_cam):
     dati_cam = utility.convertEMT(name_file_cam)
-    dati_reader_fixed, time_fixed, index_cut = utility.fixReader(kalman_data, time, dati_cam)
-    final_data_reader, final_data_cam = utility.cutReader(dati_reader_fixed, dati_cam, index_cut)
+    dati_reader_fixed, time_fixed, index_cut = data_converter.fixReader(kalman_data, time, dati_cam)
+    final_data_reader, final_data_cam, _ = data_converter.cutReader(dati_reader_fixed, dati_cam, index_cut)
 
     return final_data_reader, final_data_cam
 
@@ -79,7 +88,7 @@ def generate_dataset_without_outliers(name_file_reader, name_file_cam, where_to_
     raws_data, raws_time = data_extractor.get_raw_rssi_csv(name_file_reader)
 
     kalman_filter_par = config.KALMAN_BASE
-    kalman_data = utility.apply_kalman_filter(raws_data, kalman_filter_par)
+    kalman_data = data_converter.apply_kalman_filter(raws_data, kalman_filter_par)
 
     index_cut = utility.get_index_start_and_end_position(raws_time)
     kalman_chunks = utility.get_chunk(kalman_data, index_cut)
@@ -104,7 +113,7 @@ def generate_dataset_with_mean_and_std(name_file_reader, name_file_cam, kalman_f
 
     if kalman_filter_par is None:
         kalman_filter_par = config.KALMAN_BASE
-    kalman_data = utility.apply_kalman_filter(raws_data, kalman_filter_par)
+    kalman_data = data_converter.apply_kalman_filter(raws_data, kalman_filter_par)
 
     kalman_data_w_mean_std = utility.add_mean_and_std(kalman_data, raw_chunks)
     f_data_reader, f_data_cam = get_processed_data_from_a_kalman_data(kalman_data_w_mean_std, raws_time, name_file_cam)
@@ -131,12 +140,51 @@ def generate_dataset(name_file_reader, name_file_cam, type_of_dataset):
     y_a = []
     for name_file, cam_file in zip(name_file_reader, name_file_cam):
         x_r, y_r = type_of_dataset(name_file, cam_file)
+        print(x_r.shape)
         X_a.append(x_r)
         y_a.append(y_r)
 
     X, y = concatenate_dataset(X_a, y_a)
 
     return X, y
+
+
+def save_dataset_numpy_file(RSSI_file, RSSI, position_file, position):
+    with open(f'datasets/{RSSI_file}.npy', 'wb') as f:
+        np.save(f, RSSI)
+
+    with open(f'datasets/{position_file}.npy', 'wb') as f:
+        np.save(f, position)
+
+
+def load_dataset_numpy_file(RSSI_file, position_file):
+    with open(f'datasets/{RSSI_file}.npy', 'rb') as f:
+        RSSI = np.load(f)
+
+    with open(f'datasets/{position_file}.npy', 'rb') as f:
+        position = np.load(f)
+
+    return [RSSI, position]
+
+
+def create_image_dataset(name_file_reader, name_file_cam, w, h, stride, kalman_filter=None):
+    dati_cam = utility.convertEMT(name_file_cam)
+    data, time = data_extractor.get_raw_rssi_csv(name_file_reader)
+
+    if kalman_filter:
+        if kalman_filter == 0:
+            kalman_filter = config.KALMAN_BASE
+        data = data_converter.apply_kalman_filter(data, kalman_filter)
+
+    normalized_data = RSSI_image_converter.normalize_rssi(data)
+    dati_reader_fixed, time_fixed, index_cut = data_converter.fixReader(normalized_data, time, dati_cam)
+    index = utility.get_index_start_and_end_position(time_fixed)
+    list_of_position = data_converter.transform_in_dataframe(dati_reader_fixed, index)
+    dati_cam = [dati_cam[2], dati_cam[3]]
+    labels = RSSI_image_converter.get_label(dati_cam, index_cut)
+
+    final_dir = f'{w}x{h}-{stride}/{name_file_reader}'
+    RSSI_image_converter.translate_RSSI_to_image_greyscale(list_of_position, labels, final_dir)
 
 
 if __name__ == "__main__":

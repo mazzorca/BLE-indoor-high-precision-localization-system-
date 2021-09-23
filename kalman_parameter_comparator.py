@@ -5,24 +5,40 @@ import numpy as np
 import pandas as pd
 
 import config
+import data_converter
 import testMultiRegress
 import utility
 import data_extractor
 import dataset_generator
 
 # Experiment Set-up
-INITIAL_R = 0.01
-INITIAL_Q = 0.000001
+INITIAL_R = 0.0001
+INITIAL_Q = 0.0000001
 
-FINAL_R = 0.01
-FINAL_Q = 0.0001
+FINAL_R = 1
+FINAL_Q = 0.001
 
-NUM_R = 1
-NUM_Q = 100
+NUM_R = 11
+NUM_Q = 2
 
 WINDOWS_SIZE = 50
 
 RSSI_BAND = 2.
+
+
+def create_list_for_kpc(initial, final, num):
+    Ls = [initial]
+    fn = initial * 10
+
+    while fn <= final:
+        a = np.linspace(0, fn, num)
+        a = np.delete(a, 0)
+        if num > 10:
+            a = np.delete(a, 0)
+        Ls = np.concatenate([Ls, a])
+        fn *= 10
+
+    return Ls
 
 
 def get_settling_sample(kalman_chunks, raw_chunks):
@@ -95,7 +111,7 @@ def kalman_settling_sample_comparator(specific_kalman_filters=None, enable_regre
 
         print('R', R, 'Q', Q)
 
-        kalman_data = utility.apply_kalman_filter(raws_data, kalman_filter_par)
+        kalman_data = data_converter.apply_kalman_filter(raws_data, kalman_filter_par)
         kalman_chunks = utility.get_chunk(kalman_data, index_cut)
         raw_chunks = utility.get_chunk(raws_data, index_cut)
 
@@ -126,7 +142,7 @@ def kalman_settling_sample_comparator(specific_kalman_filters=None, enable_regre
     experiment_df = pd.DataFrame(experiment_dict)
     experiment_df.set_index(['R', 'Q'])
 
-    experiment_df.to_excel("kpc/kpc-settling_sample.xlsx")
+    experiment_df.to_excel("kpc/kpc-settling_sample-high_range.xlsx")
 
 
 def get_raws_data_runs_all():
@@ -151,7 +167,7 @@ def get_best_good_points(percentage, file_excel):
     return df_filtered
 
 
-def get_kalman_good_point():
+def get_kalman_good_point(Rs, Qs):
     cam_files = ["2605r0", "Cal3105run0", "Cal3105run1", "Cal3105run2"]
 
     raws_run, raws_time = get_raws_data_runs_all()
@@ -162,12 +178,12 @@ def get_kalman_good_point():
     }
 
     parameter_coverage = 0
-    total_run = NUM_R * NUM_Q
+    total_run = len(Rs) * len(Qs)
 
     kalman_filter_par = config.KALMAN_BASE
-    for R in np.linspace(INITIAL_R, FINAL_R, NUM_R):
+    for R in Rs:
         kalman_filter_par['R'] = R
-        for Q in np.linspace(INITIAL_Q, FINAL_Q, NUM_Q):
+        for Q in Qs:
             kalman_filter_par['Q'] = Q
 
             parameter_coverage += 1
@@ -177,7 +193,7 @@ def get_kalman_good_point():
             X_list = []
             y_list = []
             for raws_data, raw_time, cam_file in zip(raws_run, raws_time, cam_files):
-                kalman_data = utility.apply_kalman_filter(raws_data, kalman_filter_par)
+                kalman_data = data_converter.apply_kalman_filter(raws_data, kalman_filter_par)
                 final_data_reader, final_data_cam = dataset_generator.get_processed_data_from_a_kalman_data(kalman_data,
                                                                                                             raw_time,
                                                                                                             cam_file)
@@ -200,10 +216,36 @@ def get_kalman_good_point():
     experiment_df = pd.DataFrame(experiment_dict)
     experiment_df.set_index(['R', 'Q'])
 
-    experiment_df.to_excel("kpc/kpc-good_pointsQ.xlsx")
+    experiment_df.to_excel("kpc/kpc-good_pointsQplot.xlsx")
+
+
+def switch_predicted_points_to_percentage(name_file_reader, name_file_cam, name_file="kpc/kpc-good_points_high_range"
+                                                                                     ".xlsx"):
+    df = pd.read_excel(name_file)
+
+    x_test, y_test = dataset_generator.generate_dataset(name_file_reader, name_file_cam,
+                                                        dataset_generator.generate_dataset_base)
+
+    max_dim = x_test.shape[0]
+
+    regressor_names = testMultiRegress.NAMES
+    percentage_df = pd.DataFrame({'R': df['R'], 'Q': df['Q']})
+    for names in regressor_names:
+        percentage_df[names] = df[names].apply(lambda x: x/max_dim*100)
+
+    new_name_file = name_file.split('.')[0] + "percentage.xlsx"
+    percentage_df.to_excel(new_name_file)
+    return percentage_df
 
 
 if __name__ == "__main__":
-    # df = get_best_good_points(99.9, "kpc/kpc-good_points3.xlsx")
+    # df = get_best_good_points(99.75, "kpc/kpc-good_points_high_range.xlsx")
     # kalman_settling_sample_comparator(df[['Q', 'R']])
-    get_kalman_good_point()
+    # Rs = np.linspace(INITIAL_R, FINAL_R, NUM_R)
+    # Qs = np.linspace(INITIAL_Q, FINAL_Q, NUM_Q)
+    # Rs = create_list_for_kpc(INITIAL_R, FINAL_R, NUM_R)
+    # Qs = create_list_for_kpc(INITIAL_Q, FINAL_Q, NUM_Q)
+    # get_kalman_good_point(Rs, Qs)
+    name_files = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
+    cam_files = ["Cal3105run0", "Cal3105run1", "Cal3105run2"]
+    switch_predicted_points_to_percentage(name_files, cam_files)
