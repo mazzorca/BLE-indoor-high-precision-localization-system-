@@ -168,11 +168,24 @@ def load_dataset_numpy_file(RSSI_file, position_file):
 
 
 def create_image_dataset(name_file_reader, name_file_cam, w, h, stride, kalman_filter=None):
+    """
+
+    :param name_file_reader:
+    :param name_file_cam:
+    :param w:
+    :param h:
+    :param stride:
+    :param kalman_filter:
+        - Not use Kalman
+        - 1: kalman base
+    :return:
+    """
     dati_cam = utility.convertEMT(name_file_cam)
     data, time = data_extractor.get_raw_rssi_csv(name_file_reader)
 
     if kalman_filter:
-        if kalman_filter == 0:
+        print("Using Kalman")
+        if kalman_filter == 1:
             kalman_filter = config.KALMAN_BASE
         data = data_converter.apply_kalman_filter(data, kalman_filter)
 
@@ -184,7 +197,7 @@ def create_image_dataset(name_file_reader, name_file_cam, w, h, stride, kalman_f
     labels = RSSI_image_converter.get_label(dati_cam, index_cut)
 
     final_dir = f'{w}x{h}-{stride}/{name_file_reader}'
-    RSSI_image_converter.translate_RSSI_to_image_greyscale(list_of_position, labels, final_dir)
+    RSSI_image_converter.translate_RSSI_to_image_greyscale(list_of_position, labels, final_dir, w, h, stride)
 
 
 if __name__ == "__main__":

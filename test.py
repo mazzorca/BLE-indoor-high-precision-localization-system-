@@ -26,12 +26,12 @@ if __name__ == "__main__":
     #     [5, 60, 10]
     # ]
 
-    params = [[5, 60, 10]]
+    params = [[20, 20, 10]]
 
     for param in params:
         print("w:", param[0], "h:", param[1], "stride:", param[2])
         for name_file_reader, name_file_cam in zip(config.NAME_FILES, config.CAM_FILES):
-            create_image_dataset(name_file_reader, name_file_cam, param[0], param[1], param[2])
+            create_image_dataset(name_file_reader, name_file_cam, param[0], param[1], param[2], 1)
 
     # net = BLEcnn()
     # print(summary(net, input_size=(1, 1, 24, 24)))

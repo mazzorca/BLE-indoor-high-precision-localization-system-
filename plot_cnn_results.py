@@ -26,7 +26,7 @@ def load_cnn_results(p_file, o_filee):
     return predicted, optimal
 
 
-def get_results(model_name, experiments_list, dir, type_ecdf):
+def get_results(model_name, experiments_list, par, type_ecdf):
     predicteds = np.array([])
     optimals = np.array([])
     if type_ecdf == 0:
@@ -36,15 +36,15 @@ def get_results(model_name, experiments_list, dir, type_ecdf):
         optimals = np.array([[], []])
         optimals = optimals.transpose()
     for experiment in experiments_list:
-        predicted, optimal = load_cnn_results(f'{dir}/{type_ecdf}.{model_name}-{experiment}_p',
-                                              f'{dir}/{type_ecdf}.{model_name}-{experiment}_o')
+        predicted, optimal = load_cnn_results(f'{model_name}/{type_ecdf}.{par}-{experiment}_p',
+                                              f'{model_name}/{type_ecdf}.{par}-{experiment}_o')
         predicteds = np.concatenate([predicteds, predicted])
         optimals = np.concatenate([optimals, optimal])
 
     return predicteds, optimals
 
 
-def compare_cnns_with_ecdf(experiment_list, dir, models=None, what_type_of_ecdf=0):
+def compare_cnns_with_ecdf(experiment_list, models_names, what_type_of_ecdf=0):
     """
     Compare the performance of different regressor with a run by ecdf
     :param dir: widthxheigth-stride
@@ -56,12 +56,9 @@ def compare_cnns_with_ecdf(experiment_list, dir, models=None, what_type_of_ecdf=
     :return: void
     """
 
-    if models is None:
-        models = [cnn_name for cnn_name in cnn_conf.active_moodels if cnn_conf.active_moodels[cnn_name]]
-
     name_plot = ' '.join(experiment_list)
     if what_type_of_ecdf == 0:
-        ecdf_total = compare_cnns_with_ecdf_euclidean(models, experiment_list, dir)
+        ecdf_total = compare_cnns_with_ecdf_euclidean(models_names, experiment_list)
 
         ecdf_total.plot.line(
             title=f"ECDF {name_plot}",
@@ -74,7 +71,7 @@ def compare_cnns_with_ecdf(experiment_list, dir, models=None, what_type_of_ecdf=
         fig, ax = plt.subplots()
         ax.set_title(f"ECDF {name_plot}")
 
-        ax = compare_cnns_with_ecdf_square(models, experiment_list, dir, ax)
+        ax = compare_cnns_with_ecdf_square(models_names, experiment_list, ax)
 
         plt.legend(loc='lower right')
         plt.show()
@@ -82,12 +79,15 @@ def compare_cnns_with_ecdf(experiment_list, dir, models=None, what_type_of_ecdf=
         plt.savefig(f'plots/ecdf_square_{name_plot}.png')
 
 
-def compare_cnns_with_ecdf_euclidean(models, experiment_list, dir):
+def compare_cnns_with_ecdf_euclidean(models_names, experiment_list):
     ecdf_total = pd.DataFrame()
-    for model in models:
-        predicteds, optimals = get_results(model, experiment_list, dir, 0)
+    for model_name in models_names:
+        model = model_name.split("/")[0]
+        par = model_name.split("/")[1]
 
-        ecdf_df = statistic_utility.get_ecdf_euclidean_df(optimals, predicteds, model)
+        predicteds, optimals = get_results(model, experiment_list, par, 0)
+
+        ecdf_df = statistic_utility.get_ecdf_euclidean_df(optimals, predicteds, model_name)
         ecdf_total = pd.concat([ecdf_total, ecdf_df], axis=1)
 
     ecdf_total = ecdf_total.interpolate(method='linear')
@@ -95,9 +95,12 @@ def compare_cnns_with_ecdf_euclidean(models, experiment_list, dir):
     return ecdf_total
 
 
-def compare_cnns_with_ecdf_square(models, experiment_list, dir, ax):
-    for model in models:
-        predicteds, optimals = get_results(model, experiment_list, dir, 1)
+def compare_cnns_with_ecdf_square(models_names, experiment_list, ax):
+    for model_name in models_names:
+        model = model_name.split("/")[0]
+        par = model_name.split("/")[1]
+
+        predicteds, optimals = get_results(model, experiment_list, par, 1)
 
         xo = []
         yo = []
@@ -112,10 +115,10 @@ def compare_cnns_with_ecdf_square(models, experiment_list, dir, ax):
             xp.append(square_x)
             yp.append(square_y)
 
-        ecdf_df = statistic_utility.get_ecdf_square_df(xo, yo, xp, yp, model)
+        ecdf_df = statistic_utility.get_ecdf_square_df(xo, yo, xp, yp, model_name)
 
         index = ecdf_df.index.tolist()
-        ax.step(np.array(index), ecdf_df[model], label=model, where="post")
+        ax.step(np.array(index), ecdf_df[model_name], label=model_name, where="post")
 
     ax.set_xlabel("squares")
     ax.set_ylabel("Empirical cumulative distribution function")
@@ -123,10 +126,8 @@ def compare_cnns_with_ecdf_square(models, experiment_list, dir, ax):
     return ax
 
 
-def compare_with_regressors_euclidean(experiment_list, dir):
-    models = [cnn_name for cnn_name in cnn_conf.active_moodels if cnn_conf.active_moodels[cnn_name]]
-
-    ecdf_total_cnn = compare_cnns_with_ecdf_euclidean(models, experiment_list, dir)
+def compare_with_regressors_euclidean(model_name, experiment_list):
+    ecdf_total_cnn = compare_cnns_with_ecdf_euclidean([model_name], experiment_list)
 
     name_plot = ' '.join(experiment_list)
     dataset_tests = dataset_generator.dataset_tests[name_plot]
@@ -149,15 +150,13 @@ def compare_with_regressors_euclidean(experiment_list, dir):
     plt.savefig(f'plots/ecdf_euclidean_{name_plot}.png')
 
 
-def compare_with_regressors_square(experiment_list, dir):
-    models = [cnn_name for cnn_name in cnn_conf.active_moodels if cnn_conf.active_moodels[cnn_name]]
-
+def compare_with_regressors_square(model_name, experiment_list):
     fig, ax = plt.subplots()
 
     name_plot = ' '.join(experiment_list)
     ax.set_title(f"ECDF {name_plot}")
 
-    ax = compare_cnns_with_ecdf_square(models, experiment_list, dir, ax)
+    ax = compare_cnns_with_ecdf_square([model_name], experiment_list, ax)
 
     dataset_tests = dataset_generator.dataset_tests[name_plot]
     train_dataset = dataset_generator.load_dataset_numpy_file("x_train", "y_train")
@@ -177,10 +176,14 @@ if __name__ == '__main__':
     choise = 1
 
     if plots == 0:
-        compare_cnns_with_ecdf(testing_dataset, "20x20-10", what_type_of_ecdf=choise)
+        models_names = [
+            "ble/20-0.01-32-5x60-10"
+        ]
+
+        compare_cnns_with_ecdf(testing_dataset, models_names, what_type_of_ecdf=choise)
 
     if plots == 1:
         if choise == 0:
-            compare_with_regressors_euclidean(testing_dataset, "5x60-10")
+            compare_with_regressors_euclidean("ble/20-0.01-32-5x60-10", testing_dataset)
         if choise == 1:
-            compare_with_regressors_square(testing_dataset, "5x60-10")
+            compare_with_regressors_square("ble/20-0.01-32-5x60-10", testing_dataset)
