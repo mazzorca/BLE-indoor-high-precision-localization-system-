@@ -13,9 +13,21 @@ import gc
 import os
 
 import Configuration.cnn_config as cnn_conf
+import utility
 
 
-def train_model(model, wxh, dataset, transform, epochs, learning_rate, batch_size, model_name):
+def weight_reset(m):
+    if isinstance(m, torch.nn.Conv2d) or isinstance(m, torch.nn.Linear):
+        m.reset_parameters()
+
+
+def save_model(model, save_path):
+    PATH = f'cnns/{save_path}.pth'
+    utility.check_and_if_not_exists_create_folder(PATH)
+    torch.save(model.state_dict(), PATH)
+
+
+def train_model(model, wxh, dataset, transform, epochs, learning_rate, batch_size, model_name, seed=-1, save=True):
     device = "cpu"
     if torch.cuda.is_available():
         device = "cuda:0"
@@ -24,6 +36,9 @@ def train_model(model, wxh, dataset, transform, epochs, learning_rate, batch_siz
     model.to(device)
 
     print(device)
+
+    if seed != -1:
+        torch.manual_seed(seed)
 
     train_set = RSSIImagesDataset(csv_file=f"datasets/cnn_dataset/{wxh}/{dataset}/RSSI_images.csv",
                                   root_dir=f"datasets/cnn_dataset/{wxh}/{dataset}/RSSI_images",
@@ -62,10 +77,12 @@ def train_model(model, wxh, dataset, transform, epochs, learning_rate, batch_siz
     save_name = f"{model_name}/{epochs}-{learning_rate}-{batch_size}-{wxh}"
     print('Finished Training of:', save_name)
 
-    PATH = f'cnns/{save_name}.pth'
-    torch.save(model.state_dict(), PATH)
+    if save:
+        save_model(model, save_name)
 
     gc.collect()
+
+    return model
 
 
 if __name__ == '__main__':

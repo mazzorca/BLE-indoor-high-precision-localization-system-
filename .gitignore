@@ -4,6 +4,7 @@ datasets/
 kpc/
 plots/
 cnns/
+runs/
 pytorch_tutorial/
 .idea/
 __pycache__/

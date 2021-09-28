@@ -20,8 +20,8 @@ def tune_train_model(config, data_dir=None, checkpoint_dir=None):
     gc.collect()
     os.system("rm -rf /home/ubuntu/ray_results/")
 
-    model = cnn_conf.MODELS['rfid']['model']
-    transform = cnn_conf.MODELS['rfid']['transform']
+    model = cnn_conf.MODELS['resnet50']['model']
+    transform = cnn_conf.MODELS['resnet50']['transform']
 
     device = "cpu"
     if torch.cuda.is_available():
@@ -33,8 +33,8 @@ def tune_train_model(config, data_dir=None, checkpoint_dir=None):
 
     print(device)
 
-    dir = config["wxh-stride"]
-    dataset = f"{dir}/BLE2605r"
+    wxh = config["wxh-stride"]
+    dataset = f"{wxh}/BLE2605r"
 
     train_set = RSSIImagesDataset(csv_file=f"{data_dir}/datasets/cnn_dataset/{dataset}/RSSI_images.csv",
                                   root_dir=f"{data_dir}/datasets/cnn_dataset/{dataset}/RSSI_images",
@@ -79,11 +79,12 @@ def tune_train_model(config, data_dir=None, checkpoint_dir=None):
 
             running_loss += loss.item()
 
-            if (i % 10) == 9:
-                print(f'[{epoch + 1}, {i + 1}] loss: {running_loss / 10}')
+            if (i % 50) == 49:
+                print(f'[{epoch + 1}, {i + 1}] loss: {running_loss / 50}')
                 running_loss = 0.0
 
         torch.cuda.empty_cache()
+        gc.collect()
 
         # Validation loss
         val_loss = 0.0
@@ -109,16 +110,16 @@ def tune_train_model(config, data_dir=None, checkpoint_dir=None):
 
         tune.report(loss=(val_loss / val_steps), accuracy=correct / total)
 
-    print('Finished Training of:', dir)
+    print('Finished Training of:', wxh)
 
 
 def main(num_samples, max_num_epochs):
     data_dir = os.path.abspath("./")
 
     config = {
-        "lr": tune.grid_search([0.0001, 0.001, 0.01]),
-        "batch_size": tune.grid_search([32, 128, 256]),
-        "epoch": tune.grid_search([10, 15, 20]),
+        "lr": tune.grid_search([0.0001]),
+        "batch_size": tune.grid_search([32]),
+        "epoch": tune.grid_search([10]),
         "wxh-stride": tune.grid_search([
             "15x15-10",
             "20x20-10",
@@ -126,15 +127,18 @@ def main(num_samples, max_num_epochs):
             "5x60-10"
         ])
     }
+
     scheduler = ASHAScheduler(
         metric="loss",
         mode="min",
         max_t=max_num_epochs,
         grace_period=1,
         reduction_factor=2)
+
     reporter = CLIReporter(
         # parameter_columns=["l1", "l2", "lr", "batch_size"],
         metric_columns=["loss", "accuracy", "training_iteration"])
+        
     result = tune.run(
         partial(tune_train_model, data_dir=data_dir),
         resources_per_trial={"cpu": 2, "gpu": 1},
@@ -150,6 +154,9 @@ def main(num_samples, max_num_epochs):
     print("Best trial final validation accuracy: {}".format(
         best_trial.last_result["accuracy"]))
 
+    # dfs = analysis.fetch_trial_dataframes()
+    # [d.mean_accuracy.plot() for d in dfs.values()]
+    # plt.xlabel("epoch"); plt.ylabel("Test Accuracy"); 
 
 if __name__ == '__main__':
-    main(num_samples=1, max_num_epochs=20)
+    main(num_samples=5, max_num_epochs=20)

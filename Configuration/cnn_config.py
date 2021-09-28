@@ -11,7 +11,7 @@ image_h = 15
 
 transform_base_rgb = torchvision.transforms.Compose([
         # torchvision.transforms.ToPILImage(),
-        torchvision.transforms.Resize(144),
+        torchvision.transforms.Resize((144, 144)),
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
@@ -62,7 +62,7 @@ MODELS = {
     'ble': {
         'model': BLEcnn(),
         'transform': torchvision.transforms.Compose([
-            torchvision.transforms.Resize(24),
+            torchvision.transforms.Resize((24, 24)),
             torchvision.transforms.ToTensor(),
             torchvision.transforms.Grayscale(),
             torchvision.transforms.Normalize([0.5], [0.5])

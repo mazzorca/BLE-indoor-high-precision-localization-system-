@@ -67,7 +67,7 @@ def square_pred_and_optimal(preds, ys, probabilities, y):
     y = y.cpu().numpy()
     ys = np.concatenate([ys, y])
 
-    probabilities_np = probabilities.argmax(1).numpy()
+    probabilities_np = probabilities.argmax(1).cpu().numpy()
     # probabilities_np = probabilities.numpy().argsort()[:, -cnn_conf.NUMBER_ARGMAX_SQUARE:]
 
     # reshape_size = batch_size if batch_size < probabilities_np.shape[0] else probabilities_np.shape[0]
@@ -77,12 +77,11 @@ def square_pred_and_optimal(preds, ys, probabilities, y):
     return preds, ys
 
 
-def cnn_test(model, dataset, transform, batch_size, type_dist):
+def cnn_test(model, wxh, dataset, transform, batch_size, type_dist):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(device)
 
-    test_set = RSSIImagesDataset(csv_file=f"datasets/cnn_dataset/{dir}/{dataset}/RSSI_images.csv",
-                                 root_dir=f"datasets/cnn_dataset/{dir}/{dataset}/RSSI_images",
+    test_set = RSSIImagesDataset(csv_file=f"datasets/cnn_dataset/{wxh}/{dataset}/RSSI_images.csv",
+                                 root_dir=f"datasets/cnn_dataset/{wxh}/{dataset}/RSSI_images",
                                  transform=transform)
 
     test_loader = DataLoader(dataset=test_set,
@@ -105,8 +104,8 @@ def cnn_test(model, dataset, transform, batch_size, type_dist):
         for X, y, p in test_loader:
             X, y = X.to(device), y.to(device)
 
-            pred = model(X)
-            probabilities = torch.nn.functional.softmax(pred, dim=0)
+            probabilities = model(X)
+            probabilities = torch.nn.functional.softmax(probabilities, dim=1)
 
             if type_dist == 0:
                 preds, ys = euclidean_pred_and_optimal(preds, ys, probabilities, p)
@@ -114,6 +113,38 @@ def cnn_test(model, dataset, transform, batch_size, type_dist):
                 preds, ys = square_pred_and_optimal(preds, ys, probabilities, y)
 
     return preds, ys
+
+
+def test_accuracy(model, transform, wxh, batch_size):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    dataset = f"{wxh}/dati3105run2r"
+    test_set = RSSIImagesDataset(csv_file=f"datasets/cnn_dataset/{dataset}/RSSI_images.csv",
+                                 root_dir=f"datasets/cnn_dataset/{dataset}/RSSI_images",
+                                 transform=transform)
+
+    test_loader = DataLoader(dataset=test_set,
+                             batch_size=batch_size,
+                             shuffle=True,
+                             num_workers=8)
+
+    test_steps = 0
+    total = 0
+    correct = 0
+    for i, data in enumerate(test_loader, 0):
+        with torch.no_grad():
+            inputs, labels = data[0].to(device), data[1].to(device)
+
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+            test_steps += 1
+
+    accuracy=correct / total
+
+    return accuracy
 
 
 if __name__ == '__main__':
@@ -138,6 +169,6 @@ if __name__ == '__main__':
 
         for dataset_name in testing_dataset:
             print(f'testing {model_name} on {dataset_name} dataset')
-            preds, ys = cnn_test(model, dataset_name, transform, batch_size, type_dist)
+            preds, ys = cnn_test(model, wxh, dataset_name, transform, batch_size, type_dist)
             base_file_name = f'cnn_results/{model_name}/{type_dist}.{epoch}-{lr}-{bs}-{wxh}-{dataset_name}'
             write_cnn_result(base_file_name, preds, ys)
