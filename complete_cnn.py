@@ -62,4 +62,3 @@ if __name__ == '__main__':
 
             base_file_name = f"cnn_results/{model_name}/{type_dist}.{params['epoch']}-{int(params['lr'])}-{int(params['batch_size'])}-{params['wxh-stride']}-{testing_dataset}"
             write_cnn_result(base_file_name, preds, ys)
-

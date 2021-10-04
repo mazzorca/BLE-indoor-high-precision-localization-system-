@@ -44,7 +44,7 @@ MODELS = {
     'rfid': {
         'model': RFIDcnn(),
         'transform': torchvision.transforms.Compose([
-                torchvision.transforms.Resize(32),
+                torchvision.transforms.Resize((32, 32)),
                 torchvision.transforms.ToTensor(),
                 torchvision.transforms.Grayscale(),
                 torchvision.transforms.Normalize([0.5], [0.5])
@@ -53,7 +53,7 @@ MODELS = {
     'wifi': {
         'model': WiFicnn(),
         'transform': torchvision.transforms.Compose([
-            torchvision.transforms.Resize(16),
+            torchvision.transforms.Resize((16, 18)),
             torchvision.transforms.ToTensor(),
             torchvision.transforms.Grayscale(),
             torchvision.transforms.Normalize([0.5], [0.5])

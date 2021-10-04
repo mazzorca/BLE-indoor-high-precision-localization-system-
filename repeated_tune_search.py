@@ -131,7 +131,7 @@ def tune_train_model(config, writer):
         writer.add_scalar(f"{name_run} accuracy", val_acc, epoch)
 
     print("---------------------------------------------------------")
-    print('Finished Training of:', name_run)
+    print('Finished Training of:', name_run_with_trial)
 
     print("\n\n")
 
@@ -189,4 +189,4 @@ def main(trials):
 
 
 if __name__ == '__main__':
-    main(trials=10)
+    main(trials=5)
