@@ -1,16 +1,10 @@
 import torch
 import torchvision
 
-from ray import tune
-from ray.tune import CLIReporter
-from ray.tune.schedulers import ASHAScheduler
-
 from RSSI_images_Dataset import RSSIImagesDataset
 from torch.utils.data import DataLoader
-from torch.utils.data import random_split
 
 import gc
-import os
 
 import Configuration.cnn_config as cnn_conf
 import utility
@@ -86,11 +80,11 @@ def train_model(model, wxh, dataset, transform, epochs, learning_rate, batch_siz
 
 
 if __name__ == '__main__':
-    target_transform = torchvision.transforms.Lambda(
-        lambda y: torch.zeros(18, dtype=torch.float).scatter_(dim=0, index=torch.tensor(y), value=1))
+    # target_transform = torchvision.transforms.Lambda(
+    #     lambda y: torch.zeros(18, dtype=torch.float).scatter_(dim=0, index=torch.tensor(y), value=1))
 
-    batch_size = 64
-    learning_rate = 0.001
+    batch_size = 32
+    learning_rate = 0.01
     epochs = 20
 
     for model_name in cnn_conf.MODELS:
@@ -99,4 +93,4 @@ if __name__ == '__main__':
 
         model = cnn_conf.MODELS[model_name]['model']
         transform = cnn_conf.MODELS[model_name]['transform']
-        train_model(model, "20x20-10", "BLE2605r", transform, epochs, learning_rate, batch_size, model_name)
+        train_model(model, "25x25-10", "BLE2605r", transform, epochs, learning_rate, batch_size, model_name)

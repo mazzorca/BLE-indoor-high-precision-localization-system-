@@ -139,3 +139,32 @@ def get_ecdf_dataset_back(x_train, x_test, y_train, y_test, regressors=None):
     df = pd.DataFrame(ecdf_dict, index=bins)
 
     return df
+
+
+def rnns_dataset():
+    dati_cam = utility.convertEMT(name_file_cam)
+    data, time = data_extractor.get_raw_rssi_csv(name_file_reader)
+
+    min = dataset_config.NORM_MIN_NK
+
+    normalized_data = normalize_rssi(data, min)
+    dati_reader_fixed, time_fixed, index_cut = data_converter.fixReader(normalized_data, time, dati_cam)
+    index = utility.get_index_start_and_end_position(time_fixed)
+    list_of_position = data_converter.transform_in_dataframe(dati_reader_fixed, index)
+    dati_cam = [dati_cam[2], dati_cam[3]]
+    labels = RSSI_image_converter.get_label(dati_cam, index_cut)
+
+    training_set = []
+    windows_size = 100
+    stride = 10
+    for position_str, label in zip(list_of_position.keys(), labels):
+        position_df = list_of_position[position_str]
+        for i in range(0, position_df.shape[0] - windows_size, stride):
+            sequence_df = position_df.iloc[i:i + windows_size, :]
+            training_point = (sequence_df.to_numpy(), [label[1], label[2]])
+            training_set.append(training_point)
+
+    training_set = np.array(training_set)
+    print(training_set)
+    # training_set.reshape(batch_size, 100, 5)
+    np.random.shuffle(training_set)

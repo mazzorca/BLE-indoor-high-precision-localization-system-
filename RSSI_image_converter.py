@@ -25,10 +25,8 @@ def get_max_and_min_of_data(data):
     return max_elem, min_elem
 
 
-def normalize_rssi(data_readers):
+def normalize_rssi(data_readers, max_RSSI, min_RSSI):
     normalized_RSSI = [[] for _ in data_readers]
-
-    max_RSSI, min_RSSI = dataset_config.NORM_MAX, dataset_config.NORM_MIN
 
     dividend = max_RSSI - min_RSSI
 

@@ -1,8 +1,14 @@
+import matplotlib.pyplot as plt
+
 import dataset_generator
 import testMultiRegress
+import regressors_lib
+
+from sklearn import tree
+import graphviz
 
 if __name__ == '__main__':
-    performance_test = 3
+    performance_test = 5
     choice = 0
 
     if performance_test == 0:
@@ -37,6 +43,18 @@ if __name__ == '__main__':
 
         testMultiRegress.compare_k_NNs(1000, 100, train_dataset, test_dataset,
                                        "dati3105run2r")
+
+    if performance_test == 5:
+        clf = testMultiRegress.CLASSIFIERS_DICT['Decision Tree']
+        train_dataset = dataset_generator.load_dataset_numpy_file("x_train", "y_train")
+        x_train = train_dataset[0]
+        y_train = train_dataset[1]
+
+        clf = clf.fit(x_train, y_train)
+        dot_data = tree.export_graphviz(clf, out_file=None,
+                                        filled=True, rounded=True,
+                                        special_characters=True)
+        graph = graphviz.Source(dot_data)
 
     # X, y = utility.load_dataset_arff("datasets/arff/datasetTrain0")
     # X, y = dataset_generator.generate_dataset_base_all()

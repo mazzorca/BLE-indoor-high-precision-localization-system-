@@ -166,3 +166,13 @@ def apply_kalman_filter(no_kalman_data, kalman_filter_par):
             kalman_data[i].append(kalman_filter.x[0])
 
     return kalman_data
+
+
+def positivize_rssi(data_readers, min_RSSI):
+    normalized_RSSI = [[] for _ in data_readers]
+
+    for r, data_reader in enumerate(data_readers):
+        for RSSI_value in data_reader:
+            normalized_RSSI[r].append(RSSI_value + abs(min_RSSI))
+
+    return normalized_RSSI

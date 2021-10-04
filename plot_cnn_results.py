@@ -11,9 +11,9 @@ import testMultiRegress
 import dataset_generator
 
 # testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
-# testing_dataset = ["dati3105run0r"]
+testing_dataset = ["dati3105run0r"]
 # testing_dataset = ["dati3105run1r"]
-testing_dataset = ["dati3105run2r"]
+# testing_dataset = ["dati3105run2r"]
 
 
 def load_cnn_results(p_file, o_filee):
@@ -47,8 +47,7 @@ def get_results(model_name, experiments_list, par, type_ecdf):
 def compare_cnns_with_ecdf(experiment_list, models_names, what_type_of_ecdf=0):
     """
     Compare the performance of different regressor with a run by ecdf
-    :param dir: widthxheigth-stride
-    :param models: models to plot
+    :param models_names:
     :param experiment_list: dataset where to test the models
     :param what_type_of_ecdf:
         0: euclidean
@@ -82,12 +81,15 @@ def compare_cnns_with_ecdf(experiment_list, models_names, what_type_of_ecdf=0):
 def compare_cnns_with_ecdf_euclidean(models_names, experiment_list):
     ecdf_total = pd.DataFrame()
     for model_name in models_names:
-        model = model_name.split("/")[0]
+        res_folder = model_name.split("/")[0]
+        model = res_folder.split("_")[0]
+        kalman_or_not = res_folder.split("_")[1]
         par = model_name.split("/")[1]
 
-        predicteds, optimals = get_results(model, experiment_list, par, 0)
+        predicteds, optimals = get_results(res_folder, experiment_list, par, 0)
 
-        ecdf_df = statistic_utility.get_ecdf_euclidean_df(optimals, predicteds, model_name)
+        name = f"{model} {kalman_or_not}"
+        ecdf_df = statistic_utility.get_ecdf_euclidean_df(optimals, predicteds, name)
         ecdf_total = pd.concat([ecdf_total, ecdf_df], axis=1)
 
     ecdf_total = ecdf_total.interpolate(method='linear')
@@ -97,10 +99,12 @@ def compare_cnns_with_ecdf_euclidean(models_names, experiment_list):
 
 def compare_cnns_with_ecdf_square(models_names, experiment_list, ax):
     for model_name in models_names:
-        model = model_name.split("/")[0]
+        res_folder = model_name.split("/")[0]
+        model = res_folder.split("_")[0]
+        kalman_or_not = res_folder.split("_")[1]
         par = model_name.split("/")[1]
 
-        predicteds, optimals = get_results(model, experiment_list, par, 1)
+        predicteds, optimals = get_results(res_folder, experiment_list, par, 1)
 
         xo = []
         yo = []
@@ -115,10 +119,11 @@ def compare_cnns_with_ecdf_square(models_names, experiment_list, ax):
             xp.append(square_x)
             yp.append(square_y)
 
-        ecdf_df = statistic_utility.get_ecdf_square_df(xo, yo, xp, yp, model_name)
+        name = f"{model} {kalman_or_not}"
+        ecdf_df = statistic_utility.get_ecdf_square_df(xo, yo, xp, yp, name)
 
         index = ecdf_df.index.tolist()
-        ax.step(np.array(index), ecdf_df[model_name], label=model_name, where="post")
+        ax.step(np.array(index), ecdf_df[name], label=name, where="post")
 
     ax.set_xlabel("squares")
     ax.set_ylabel("Empirical cumulative distribution function")
@@ -177,13 +182,19 @@ if __name__ == '__main__':
 
     if plots == 0:
         models_names = [
-            "ble/20-0.01-32-5x60-10"
+            # "ble/10-0.01-32-20x20-10",
+            # "resnet50/15-0.01-32-20x20-10",
+            # "resnet50/15-0.01-32-15x15-10"
+            "ble_kalman/15-0.001-25-15x15-10",
+            "resnet50_kalman/20-0.01-32-25x25-10"
+            # "ble_nokalman/15-0.001-25-15x15-10",
         ]
 
         compare_cnns_with_ecdf(testing_dataset, models_names, what_type_of_ecdf=choise)
 
     if plots == 1:
+        net = "resnet50_kalman/20-0.01-32-25x25-10"
         if choise == 0:
-            compare_with_regressors_euclidean("ble/20-0.01-32-5x60-10", testing_dataset)
+            compare_with_regressors_euclidean(net, testing_dataset)
         if choise == 1:
-            compare_with_regressors_square("ble/20-0.01-32-5x60-10", testing_dataset)
+            compare_with_regressors_square(net, testing_dataset)

@@ -652,9 +652,25 @@ def get_square_number(x, y, squares):
     point = Point(x, y)
 
     i = 0
+    find = False
     for i in range(len(squares)):
         if squares[i].contains(point):
+            find = True
             break
+
+    if not find:
+        index = 0
+        dist_min = 200
+        for i in range(len(squares)):
+            p_predicted = np.array([x, y])
+            p_square = np.array([squares[i].centroid.x, squares[i].centroid.y])
+            dist = np.linalg.norm(p_predicted - p_square)
+
+            if dist < dist_min:
+                dist_min = dist
+                index = i
+
+        i = index
 
     square_x, square_y = get_squarex_and_squarey(i)
 

@@ -1,5 +1,4 @@
 import torch
-import torchvision
 
 import utility
 from RSSI_images_Dataset import RSSIImagesDataset
@@ -30,12 +29,7 @@ def write_cnn_result(base_file_name, preds, ys):
         np.save(f, ys)
 
 
-def euclidean_pred_and_optimal(preds, ps, probabilities, p):
-    xs = p['x'].numpy()
-    ys = p['y'].numpy()
-    point = np.column_stack([xs, ys])
-    ps = np.concatenate([ps, point])
-
+def get_points_in_xy(probabilities):
     probabilities_np = probabilities.cpu().numpy()
     indexs_np = probabilities_np.argsort()[:, -cnn_conf.NUMBER_ARGMAX_EUCLIDEAN:]
 
@@ -47,7 +41,7 @@ def euclidean_pred_and_optimal(preds, ps, probabilities, p):
         x = 0
         y = 0
         for index in index_np:
-            normalized_probability = probability_np[index]/normalized_sum
+            normalized_probability = probability_np[index] / normalized_sum
             contribution_x = config.SQUARES[index].centroid.x * normalized_probability
             contribution_y = config.SQUARES[index].centroid.y * normalized_probability
             x += contribution_x
@@ -56,6 +50,16 @@ def euclidean_pred_and_optimal(preds, ps, probabilities, p):
         xs.append(x)
         ys.append(y)
 
+    return xs, ys
+
+
+def euclidean_pred_and_optimal(preds, ps, probabilities, p):
+    xs = p['x'].numpy()
+    ys = p['y'].numpy()
+    point = np.column_stack([xs, ys])
+    ps = np.concatenate([ps, point])
+
+    xs, ys = get_points_in_xy(probabilities)
     predicted_points = np.column_stack([xs, ys])
 
     preds = np.concatenate([preds, predicted_points])
@@ -67,13 +71,18 @@ def square_pred_and_optimal(preds, ys, probabilities, y):
     y = y.cpu().numpy()
     ys = np.concatenate([ys, y])
 
-    probabilities_np = probabilities.argmax(1).cpu().numpy()
-    # probabilities_np = probabilities.numpy().argsort()[:, -cnn_conf.NUMBER_ARGMAX_SQUARE:]
+    xs_point, ys_point = get_points_in_xy(probabilities)
+    squares_x, squares_y = utility.get_square_number_array(xs_point, ys_point)
 
-    # reshape_size = batch_size if batch_size < probabilities_np.shape[0] else probabilities_np.shape[0]
-    # probabilities_np = probabilities_np.reshape(reshape_size)
+    square_numbers = []
+    for square_x, square_y in zip(squares_x, squares_y):
+        square_number = square_y * 6 + square_x
+        square_numbers.append(square_number)
 
-    preds = np.concatenate([preds, probabilities_np])
+    preds = np.concatenate([preds, square_numbers])
+
+    print("y:", y)
+    print("p:", square_numbers)
     return preds, ys
 
 
@@ -142,7 +151,7 @@ def test_accuracy(model, transform, wxh, batch_size):
 
             test_steps += 1
 
-    accuracy=correct / total
+    accuracy = correct / total
 
     return accuracy
 
@@ -153,7 +162,7 @@ if __name__ == '__main__':
     type_dist = 1
 
     epoch = 10
-    lr = 0.01
+    lr = 0.001
     bs = 32
 
     batch_size = 10
@@ -164,7 +173,7 @@ if __name__ == '__main__':
 
         model = cnn_conf.MODELS[model_name]['model']
         transform = cnn_conf.MODELS[model_name]['transform']
-        parameters_saved = "ble/20-0.01-32-5x60-10"
+        parameters_saved = "ble/10-0.001-32-20x20-10"
         model = load_model(model, parameters_saved)
 
         for dataset_name in testing_dataset:

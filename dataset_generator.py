@@ -6,6 +6,7 @@ import data_converter
 import utility
 import data_extractor
 import config
+from Configuration import dataset_config
 
 dataset_tests = {
     "dati3105run0r dati3105run1r dati3105run2r": ["x_test", "y_test"],
@@ -183,13 +184,17 @@ def create_image_dataset(name_file_reader, name_file_cam, w, h, stride, kalman_f
     dati_cam = utility.convertEMT(name_file_cam)
     data, time = data_extractor.get_raw_rssi_csv(name_file_reader)
 
+    min = dataset_config.NORM_MIN_NK
+    max = dataset_config.NORM_MAX_NK
     if kalman_filter:
         print("Using Kalman")
         if kalman_filter == 1:
             kalman_filter = config.KALMAN_BASE
         data = data_converter.apply_kalman_filter(data, kalman_filter)
+        min = dataset_config.NORM_MIN_K
+        max = dataset_config.NORM_MAX_K
 
-    normalized_data = RSSI_image_converter.normalize_rssi(data)
+    normalized_data = RSSI_image_converter.normalize_rssi(data, min, max)
     dati_reader_fixed, time_fixed, index_cut = data_converter.fixReader(normalized_data, time, dati_cam)
     index = utility.get_index_start_and_end_position(time_fixed)
     list_of_position = data_converter.transform_in_dataframe(dati_reader_fixed, index)
@@ -198,6 +203,57 @@ def create_image_dataset(name_file_reader, name_file_cam, w, h, stride, kalman_f
 
     final_dir = f'{w}x{h}-{stride}/{name_file_reader}'
     RSSI_image_converter.translate_RSSI_to_image_greyscale(list_of_position, labels, final_dir, w, h, stride)
+
+
+def create_matrix_dataset(name_file_reader, name_file_cam, kalman_filter=None):
+    dati_cam = utility.convertEMT(name_file_cam)
+    data, time = data_extractor.get_raw_rssi_csv(name_file_reader)
+
+    min = dataset_config.NORM_MIN_NK
+    if kalman_filter:
+        print("Using Kalman")
+        if kalman_filter == 1:
+            kalman_filter = config.KALMAN_BASE
+        data = data_converter.apply_kalman_filter(data, kalman_filter)
+        min = dataset_config.NORM_MIN_K
+
+    normalized_data = data_converter.positivize_rssi(data, min)
+    dati_reader_fixed, time_fixed, index_cut = data_converter.fixReader(normalized_data, time, dati_cam)
+    index = utility.get_index_start_and_end_position(time_fixed)
+    list_of_position = data_converter.transform_in_dataframe(dati_reader_fixed, index)
+    dati_cam = [dati_cam[2], dati_cam[3]]
+    labels = RSSI_image_converter.get_label(dati_cam, index_cut)
+
+    windows_size = dataset_config.WINDOW_SIZE_RNN
+    stride = 10
+    PATH = f"datasets/rnn_dataset/{name_file_reader}/"
+    csv_file = f"{PATH}matrix.csv"
+    utility.check_and_if_not_exists_create_folder(csv_file)
+    utility.append_to_csv(csv_file, [["RSSI", "optimal_x", "optimal_y"]])
+    for position_str, label in zip(list_of_position.keys(), labels):
+        folder_name = f"{PATH}{position_str}/"
+        utility.check_and_if_not_exists_create_folder(folder_name)
+        position_df = list_of_position[position_str]
+
+        csv_list = []
+        for i in range(0, position_df.shape[0] - windows_size, stride):
+            sequence_df = position_df.iloc[i:i + windows_size, :]
+
+            max_df = pd.DataFrame()
+            for j in range(0, sequence_df.shape[0], stride):
+                second_df = sequence_df.iloc[j: j+stride, :]
+                max_df = pd.concat([max_df, pd.DataFrame(second_df.max()).transpose()], axis=0)
+
+            file_name = f"{folder_name}/matrix{i}.npy"
+            csv_file_name = f"{position_str}/matrix{i}.npy"
+
+            csv_list.append([csv_file_name, label[1], label[2]])
+
+            with open(file_name, 'wb') as f:
+                RSSI = max_df.to_numpy()
+                np.save(f, RSSI)
+
+        utility.append_to_csv(csv_file, csv_list)
 
 
 if __name__ == "__main__":

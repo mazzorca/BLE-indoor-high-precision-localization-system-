@@ -1,14 +1,17 @@
 import config
 import data_converter
-from dataset_generator import create_image_dataset
+from dataset_generator import create_image_dataset, create_matrix_dataset
 from cnns_models.ble_cnn import BLEcnn
 from torchinfo import summary
+from rnns_models import ble
 
 import utility
 import data_extractor
 import RSSI_image_converter
 
 if __name__ == "__main__":
+    name_files_reader = ["dati3105run2r"]
+    name_files_cam = ["Cal3105run2"]
     # name_files_reader = ["BLE2605r"]
     # name_files_cam = ["2605r0"]
 
@@ -26,20 +29,21 @@ if __name__ == "__main__":
     #     [5, 60, 10]
     # ]
 
-    params = [
-        [15, 15, 10],
-        [20, 20, 10],
-        [25, 25, 10],
-        [5, 60, 10]
-    ]
+    # params = [
+    #     [25, 25, 10],
+    # ]
+    #
+    # for param in params:
+    #     print("w:", param[0], "h:", param[1], "stride:", param[2])
+    #     for name_file_reader, name_file_cam in zip(config.NAME_FILES, config.CAM_FILES):
+    #         create_image_dataset(name_file_reader, name_file_cam, param[0], param[1], param[2])
 
-    for param in params:
-        print("w:", param[0], "h:", param[1], "stride:", param[2])
-        for name_file_reader, name_file_cam in zip(config.NAME_FILES, config.CAM_FILES):
-            create_image_dataset(name_file_reader, name_file_cam, param[0], param[1], param[2])
+    # for name_file_reader, name_file_cam in zip(config.NAME_FILES, config.CAM_FILES):
 
-    # net = BLEcnn()
-    # print(summary(net, input_size=(1, 1, 24, 24)))
+    create_matrix_dataset(name_files_reader[0], name_files_cam[0], 1)
+
+    # net = ble.BLErnn()
+    # print(summary(net, input_size=(1, 100, 5)))
 
     # raws_data, time = data_extractor.get_raw_rssi_csv("dati3105run2r")
     # kalman_filter_par = config.KALMAN_BASE

@@ -2,12 +2,12 @@ import pandas as pd
 
 
 def get_params(file_name, params):
-    df_mean = pd.read_csv(f"{file_name}.csv")
+    df_mean = pd.read_csv(f"tune_results/{file_name}.csv")
 
     min_loss_avg = df_mean["loss"].min()
     df_param = df_mean.loc[df_mean["loss"] == min_loss_avg]
 
-    df_all = pd.read_csv(f"{file_name}_all.csv")
+    df_all = pd.read_csv(f"tune_results/{file_name}_all.csv")
     for param in params:
         value = df_param.iloc[0][param]
         df_all = df_all.loc[df_all[param] == value]

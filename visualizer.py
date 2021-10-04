@@ -10,11 +10,19 @@ import numpy as np
 import pandas as pd
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
+import torch
+import torchvision
+from torch.utils.data import DataLoader
 
 import data_converter
+import plot_utility
 import utility
 import data_extractor
 import dataset_generator
+
+from Configuration import cnn_config
+from RSSI_images_Dataset import RSSIImagesDataset
+from cnn_testing import load_model
 
 
 def plot_kalman_rssi():
@@ -303,6 +311,7 @@ def plot_y_dataset(name_files_reader=config.NAME_FILES, name_files_cam=config.CA
         df.plot.scatter(x='x(m)', y="y(m)", ax=ax, color=colors[i], label=f'run{i}')
         i += 1
 
+    ax = plot_utility.add_grid_meters(ax)
     plt.show()
 
     plt.savefig('plots/dataset_y.png')
@@ -438,3 +447,60 @@ def plot_3d_setting_time_and_predicted_point(predicted_name_files, settling_name
     plt.savefig("plots/ColorBar.png")
 
     plt.show()
+
+
+def cnn_determination_square(model_name, wxh, experiment):
+    model_type = model_name.split("/")[0]
+    model = cnn_config.MODELS[model_type]['model']
+    transform = cnn_config.MODELS[model_type]['transform']
+
+    model = load_model(model, model_name)
+    model.eval()
+
+    dataset = f"{wxh}/{experiment}"
+    test_set = RSSIImagesDataset(csv_file=f"datasets/cnn_dataset/{dataset}/RSSI_images.csv",
+                                 root_dir=f"datasets/cnn_dataset/{dataset}/RSSI_images",
+                                 transform=transform)
+
+    test_loader = DataLoader(dataset=test_set,
+                             batch_size=1,
+                             shuffle=True,
+                             num_workers=8)
+
+    with torch.no_grad():
+        for i, test_point in enumerate(test_loader):
+            image, label, point = test_point[0], test_point[1], test_point[2]
+
+            pred = model(image)
+            probability = torch.nn.functional.softmax(pred, dim=1)
+
+            points = []
+            probability_np = probability.cpu().numpy()[0]
+            indexs = probability_np.argsort()[-cnn_config.NUMBER_ARGMAX_EUCLIDEAN:]
+
+            normalized_sum = np.sum(probability_np[indexs])
+
+            x = 0
+            y = 0
+            for index in indexs:
+                normalized_probability = probability_np[index] / normalized_sum
+                points.append(
+                    [config.SQUARES[index].centroid.x, config.SQUARES[index].centroid.y, normalized_probability])
+
+                contribution_x = config.SQUARES[index].centroid.x * normalized_probability
+                contribution_y = config.SQUARES[index].centroid.y * normalized_probability
+                x += contribution_x
+                y += contribution_y
+
+            df = pd.DataFrame(points, columns=["x", "y", "prob"])
+            ax = df.plot.scatter(x="x", y="y", c="prob", colormap="viridis")
+
+            ax.scatter(point['x'], point['y'], c='green')
+            ax.scatter(x, y, c='red')
+            ax = plot_utility.add_grid_meters(ax)
+
+            name = f"plots/cnn_table/{experiment}/square{label.item()}/img{i}"
+            utility.check_and_if_not_exists_create_folder(name)
+
+            plt.savefig(name)
+            plt.close()
