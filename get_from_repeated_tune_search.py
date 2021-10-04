@@ -26,7 +26,7 @@ if __name__ == '__main__':
             "wxh-stride"
         ]
 
-    params, best_seed = get_params("ble", params)
+    params, best_seed = get_params("kalman/resnet50", params)
 
     print("params", params)
     print("best_seed", best_seed)

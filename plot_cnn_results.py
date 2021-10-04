@@ -11,9 +11,17 @@ import testMultiRegress
 import dataset_generator
 
 # testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
-testing_dataset = ["dati3105run0r"]
+# testing_dataset = ["dati3105run0r"]
 # testing_dataset = ["dati3105run1r"]
-# testing_dataset = ["dati3105run2r"]
+testing_dataset = ["dati3105run2r"]
+
+
+best_models_name = [
+    "resnet50_kalman/20-0.01-32-15x15-10",
+    "resnet50_nokalman/20-0.01-128-20x20-10",
+    "ble_kalman/20-0.01-32-20x20-10",
+    "ble_nokalman/20-0.01-32-25x25-10"
+]
 
 
 def load_cnn_results(p_file, o_filee):
@@ -52,10 +60,12 @@ def compare_cnns_with_ecdf(experiment_list, models_names, what_type_of_ecdf=0):
     :param what_type_of_ecdf:
         0: euclidean
         1: square
+        2: compare 2 type of square ecdf
     :return: void
     """
 
     name_plot = ' '.join(experiment_list)
+    name_plot = f"{name_plot}_resnet50"
     if what_type_of_ecdf == 0:
         ecdf_total = compare_cnns_with_ecdf_euclidean(models_names, experiment_list)
 
@@ -66,11 +76,24 @@ def compare_cnns_with_ecdf(experiment_list, models_names, what_type_of_ecdf=0):
         )
 
         plt.savefig(f'plots/ecdf_euclidean_{name_plot}.png')
+
     if what_type_of_ecdf == 1:
         fig, ax = plt.subplots()
         ax.set_title(f"ECDF {name_plot}")
 
-        ax = compare_cnns_with_ecdf_square(models_names, experiment_list, ax)
+        ax = compare_cnns_with_ecdf_square(models_names, experiment_list, ax, 1)
+
+        plt.legend(loc='lower right')
+        plt.show()
+
+        plt.savefig(f'plots/ecdf_square_{name_plot}.png')
+
+    if what_type_of_ecdf == 2:
+        fig, ax = plt.subplots()
+        ax.set_title(f"ECDF {name_plot}")
+
+        ax = compare_cnns_with_ecdf_square(models_names, experiment_list, ax, "1-0")
+        ax = compare_cnns_with_ecdf_square(models_names, experiment_list, ax, "1-1")
 
         plt.legend(loc='lower right')
         plt.show()
@@ -97,14 +120,14 @@ def compare_cnns_with_ecdf_euclidean(models_names, experiment_list):
     return ecdf_total
 
 
-def compare_cnns_with_ecdf_square(models_names, experiment_list, ax):
+def compare_cnns_with_ecdf_square(models_names, experiment_list, ax, type_ecdf):
     for model_name in models_names:
         res_folder = model_name.split("/")[0]
         model = res_folder.split("_")[0]
         kalman_or_not = res_folder.split("_")[1]
         par = model_name.split("/")[1]
 
-        predicteds, optimals = get_results(res_folder, experiment_list, par, 1)
+        predicteds, optimals = get_results(res_folder, experiment_list, par, type_ecdf)
 
         xo = []
         yo = []
@@ -120,6 +143,12 @@ def compare_cnns_with_ecdf_square(models_names, experiment_list, ax):
             yp.append(square_y)
 
         name = f"{model} {kalman_or_not}"
+        if type_ecdf == "1-1":
+            name = f"{name} more"
+
+        if type_ecdf == "1-0":
+            name = f"{name} singol"
+
         ecdf_df = statistic_utility.get_ecdf_square_df(xo, yo, xp, yp, name)
 
         index = ecdf_df.index.tolist()
@@ -177,17 +206,13 @@ def compare_with_regressors_square(model_name, experiment_list):
 
 
 if __name__ == '__main__':
-    plots = 1
-    choise = 1
+    plots = 0
+    choise = 0
 
     if plots == 0:
         models_names = [
-            # "ble/10-0.01-32-20x20-10",
-            # "resnet50/15-0.01-32-20x20-10",
-            # "resnet50/15-0.01-32-15x15-10"
-            "ble_kalman/15-0.001-25-15x15-10",
-            "resnet50_kalman/20-0.01-32-25x25-10"
-            # "ble_nokalman/15-0.001-25-15x15-10",
+            "resnet50_kalman/20-0.01-32-15x15-10",
+            "resnet50_nokalman/20-0.01-128-20x20-10"
         ]
 
         compare_cnns_with_ecdf(testing_dataset, models_names, what_type_of_ecdf=choise)
