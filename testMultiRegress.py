@@ -100,7 +100,7 @@ def get_ecdf_regressor_dataset(x_train, x_test, y_train, y_test, regressor, regr
     optimal_points, predicted_points = regressors_lib.get_regressor_optimal_and_predicted_points(regressor, x_train,
                                                                                                  x_test, y_train,
                                                                                                  y_test)
-    return statistic_utility.get_ecdf_euclidean_df(optimal_points, predicted_points, regressor_name)
+    return statistic_utility.get_ecdf_euclidean_df_resolve_auto(optimal_points, predicted_points, regressor_name)
 
 
 def get_ecdf_dataset_squares(x_train, x_test, y_train, y_test, regressors, regressor_name):

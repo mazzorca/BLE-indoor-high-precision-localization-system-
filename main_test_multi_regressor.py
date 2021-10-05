@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.model_selection import train_test_split
 
 import dataset_generator
 import testMultiRegress
@@ -8,7 +10,7 @@ from sklearn import tree
 import graphviz
 
 if __name__ == '__main__':
-    performance_test = 5
+    performance_test = 6
     choice = 0
 
     if performance_test == 0:
@@ -55,6 +57,23 @@ if __name__ == '__main__':
                                         filled=True, rounded=True,
                                         special_characters=True)
         graph = graphviz.Source(dot_data)
+
+    if performance_test == 6:
+        set0 = dataset_generator.load_dataset_numpy_file("x_train", "y_train")
+        set1 = dataset_generator.load_dataset_numpy_file("x_test0", "y_test0")
+        set2 = dataset_generator.load_dataset_numpy_file("x_test1", "y_test1")
+        set3 = dataset_generator.load_dataset_numpy_file("x_test2", "y_test2")
+
+        total_dataset_x = np.concatenate([set0[0], set1[0], set2[0], set3[0]])
+        total_dataset_y = np.concatenate([set0[1], set1[1], set2[1], set3[1]])
+
+        x_train, x_test, y_train, y_test = train_test_split(total_dataset_x, total_dataset_y, train_size=0.50)
+
+        train_dataset = [x_train, y_train]
+        test_dataset = [x_test, y_test]
+
+        testMultiRegress.compare_regressor_with_ecdf(train_dataset, test_dataset, ["All Dataset split"],
+                                                     what_type_of_ecdf=choice)
 
     # X, y = utility.load_dataset_arff("datasets/arff/datasetTrain0")
     # X, y = dataset_generator.generate_dataset_base_all()

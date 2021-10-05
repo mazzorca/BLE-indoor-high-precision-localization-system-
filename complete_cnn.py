@@ -10,6 +10,7 @@ use_best_hyper = 1
 
 if __name__ == '__main__':
     model_name = "ble"
+    kalman = "nokalman"
     transform = cnn_config.MODELS[model_name]["transform"]
     model = cnn_config.MODELS[model_name]["model"]
 
@@ -23,7 +24,7 @@ if __name__ == '__main__':
 
     best_seed = -1
     if use_best_hyper:
-        df_params, best_seed = get_params(model_name, list(params.keys()))
+        df_params, best_seed = get_params(f"{kalman}/{model_name}", list(params.keys()))
         for param in params.keys():
             params[param] = df_params.iloc[0][param]
 

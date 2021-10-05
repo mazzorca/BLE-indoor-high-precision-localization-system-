@@ -3,11 +3,6 @@ import numpy as np
 import torchvision.transforms
 from torch.utils.data import DataLoader
 
-import utility
-import data_extractor
-from Configuration import dataset_config
-import data_converter
-import RSSI_image_converter
 from rnns_models import ble
 
 from rnn_dataset import RnnDataset
