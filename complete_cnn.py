@@ -9,8 +9,8 @@ use_best_hyper = 1
 skip_training = 1
 
 if __name__ == '__main__':
-    model_name = "ble"
-    kalman = "kalman"
+    model_name = "wifi"
+    kalman = "nokalman"
     transform = cnn_config.MODELS[model_name]["transform"]
     model = cnn_config.MODELS[model_name]["model"]
 
