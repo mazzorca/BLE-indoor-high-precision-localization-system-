@@ -6,10 +6,10 @@ import copy
 
 
 use_best_hyper = 1
-
+skip_training = 0
 
 if __name__ == '__main__':
-    model_name = "ble"
+    model_name = "wifi"
     kalman = "nokalman"
     transform = cnn_config.MODELS[model_name]["transform"]
     model = cnn_config.MODELS[model_name]["model"]
@@ -30,30 +30,33 @@ if __name__ == '__main__':
 
     print("params used:", params)
     print("seed used:", best_seed)
-    trained_model = train_model(
-        model, 
-        params["wxh-stride"], 
-        dataset, 
-        transform, 
-        int(params["epoch"]), 
-        params["lr"], 
-        int(params["batch_size"]), 
-        model_name, 
-        seed=best_seed,
-        save=True
-    )
+
+    model_name = f"{model_name}_{kalman}"
+    if not skip_training:
+        trained_model = train_model(
+            model, 
+            params["wxh-stride"], 
+            dataset, 
+            transform, 
+            int(params["epoch"]), 
+            params["lr"], 
+            int(params["batch_size"]), 
+            model_name, 
+            seed=best_seed,
+            save=True
+        )
 
     parameters_saved = f"{model_name}/{int(params['epoch'])}-{params['lr']}-{int(params['batch_size'])}-{params['wxh-stride']}"
     model = load_model(model, parameters_saved)
 
     testing_datasets = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
 
-    number_argmax_list = [4, 6, 8]
-    for type_dist in [0, 1]:
+    number_argmax_list = [2, 4, 6, 8, 10]
+    for type_dist in [0]:
         print("Type_dist:", type_dist)
         for testing_dataset in testing_datasets:
             for number_argmax in number_argmax_list:
-                print("testing on:", testing_dataset)
+                print("testing on:", testing_dataset, "Arg for distance:", number_argmax)
 
                 preds, ys = cnn_test(
                     model,
@@ -67,5 +70,5 @@ if __name__ == '__main__':
 
                 type_dist_save = f"{type_dist}-{number_argmax}"
 
-                base_file_name = f"cnn_results/{model_name}/{type_dist}.{int(params['epoch'])}-{params['lr']}-{int(params['batch_size'])}-{params['wxh-stride']}-{testing_dataset}"
+                base_file_name = f"cnn_results/{model_name}/{type_dist_save}.{int(params['epoch'])}-{params['lr']}-{int(params['batch_size'])}-{params['wxh-stride']}-{testing_dataset}"
                 write_cnn_result(base_file_name, preds, ys)
