@@ -38,27 +38,33 @@ if __name__ == '__main__':
         params["lr"], 
         int(params["batch_size"]), 
         model_name, 
-        seed = best_seed, 
+        seed=best_seed,
         save=True
     )
 
+    parameters_saved = f"{model_name}/{int(params['epoch'])}-{params['lr']}-{int(params['batch_size'])}-{params['wxh-stride']}"
+    model = load_model(model, parameters_saved)
+
     testing_datasets = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
 
+    number_argmax_list = [4, 6, 8]
     for type_dist in [0, 1]:
         print("Type_dist:", type_dist)
         for testing_dataset in testing_datasets:
-            print("testing on:", testing_dataset)
-            parameters_saved = f"{model_name}/{int(params['epoch'])}-{params['lr']}-{int(params['batch_size'])}-{params['wxh-stride']}"
-            model = load_model(model, parameters_saved)
+            for number_argmax in number_argmax_list:
+                print("testing on:", testing_dataset)
 
-            preds, ys = cnn_test(
-                model, 
-                params["wxh-stride"], 
-                testing_dataset, 
-                transform, 
-                int(params["batch_size"]), 
-                type_dist
-            )
+                preds, ys = cnn_test(
+                    model,
+                    params["wxh-stride"],
+                    testing_dataset,
+                    transform,
+                    int(params["batch_size"]),
+                    type_dist,
+                    number_argmax=number_argmax
+                )
 
-            base_file_name = f"cnn_results/{model_name}/{type_dist}.{params['epoch']}-{int(params['lr'])}-{int(params['batch_size'])}-{params['wxh-stride']}-{testing_dataset}"
-            write_cnn_result(base_file_name, preds, ys)
+                type_dist_save = f"{type_dist}-{number_argmax}"
+
+                base_file_name = f"cnn_results/{model_name}/{type_dist}.{int(params['epoch'])}-{params['lr']}-{int(params['batch_size'])}-{params['wxh-stride']}-{testing_dataset}"
+                write_cnn_result(base_file_name, preds, ys)

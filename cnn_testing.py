@@ -29,9 +29,9 @@ def write_cnn_result(base_file_name, preds, ys):
         np.save(f, ys)
 
 
-def get_points_in_xy(probabilities):
+def get_points_in_xy(probabilities, number_argmax):
     probabilities_np = probabilities.cpu().numpy()
-    indexs_np = probabilities_np.argsort()[:, -cnn_conf.NUMBER_ARGMAX_EUCLIDEAN:]
+    indexs_np = probabilities_np.argsort()[:, -number_argmax:]
 
     xs = []
     ys = []
@@ -53,13 +53,13 @@ def get_points_in_xy(probabilities):
     return xs, ys
 
 
-def euclidean_pred_and_optimal(preds, ps, probabilities, p):
+def euclidean_pred_and_optimal(preds, ps, probabilities, p, number_argmax):
     xs = p['x'].numpy()
     ys = p['y'].numpy()
     point = np.column_stack([xs, ys])
     ps = np.concatenate([ps, point])
 
-    xs, ys = get_points_in_xy(probabilities)
+    xs, ys = get_points_in_xy(probabilities, number_argmax)
     predicted_points = np.column_stack([xs, ys])
 
     preds = np.concatenate([preds, predicted_points])
@@ -67,26 +67,27 @@ def euclidean_pred_and_optimal(preds, ps, probabilities, p):
     return preds, ps
 
 
-def square_pred_and_optimal(preds, ys, probabilities, y):
+def square_pred_and_optimal(preds, ys, probabilities, y, number_argmax):
     y = y.cpu().numpy()
     ys = np.concatenate([ys, y])
 
-    xs_point, ys_point = get_points_in_xy(probabilities)
-    squares_x, squares_y = utility.get_square_number_array(xs_point, ys_point)
+    if number_argmax == 1:
+        square_numbers = probabilities.argmax(1).cpu().numpy()
+    else:
+        xs_point, ys_point = get_points_in_xy(probabilities, number_argmax)
+        squares_x, squares_y = utility.get_square_number_array(xs_point, ys_point)
 
-    square_numbers = []
-    for square_x, square_y in zip(squares_x, squares_y):
-        square_number = square_y * 6 + square_x
-        square_numbers.append(square_number)
+        square_numbers = []
+        for square_x, square_y in zip(squares_x, squares_y):
+            square_number = square_y * 6 + square_x
+            square_numbers.append(square_number)
 
     preds = np.concatenate([preds, square_numbers])
 
-    print("y:", y)
-    print("p:", square_numbers)
     return preds, ys
 
 
-def cnn_test(model, wxh, dataset, transform, batch_size, type_dist):
+def cnn_test(model, wxh, dataset, transform, batch_size, type_dist, number_argmax=cnn_conf.NUMBER_ARGMAX_EUCLIDEAN):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     test_set = RSSIImagesDataset(csv_file=f"datasets/cnn_dataset/{wxh}/{dataset}/RSSI_images.csv",
@@ -117,9 +118,9 @@ def cnn_test(model, wxh, dataset, transform, batch_size, type_dist):
             probabilities = torch.nn.functional.softmax(probabilities, dim=1)
 
             if type_dist == 0:
-                preds, ys = euclidean_pred_and_optimal(preds, ys, probabilities, p)
+                preds, ys = euclidean_pred_and_optimal(preds, ys, probabilities, p, number_argmax)
             if type_dist == 1:
-                preds, ys = square_pred_and_optimal(preds, ys, probabilities, y)
+                preds, ys = square_pred_and_optimal(preds, ys, probabilities, y, number_argmax)
 
     return preds, ys
 
