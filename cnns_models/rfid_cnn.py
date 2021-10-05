@@ -18,4 +18,5 @@ class RFIDcnn(nn.Module):
         x = self.pool(F.relu(self.conv2(x)))
         x = self.pool(F.relu(self.conv3(x)))
         x = self.flatten(x)
+        x = self.fc(x)
         return x
