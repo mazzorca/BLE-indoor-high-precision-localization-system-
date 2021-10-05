@@ -6,11 +6,11 @@ import copy
 
 
 use_best_hyper = 1
-skip_training = 0
+skip_training = 1
 
 if __name__ == '__main__':
-    model_name = "wifi"
-    kalman = "nokalman"
+    model_name = "resnet50"
+    kalman = "kalman"
     transform = cnn_config.MODELS[model_name]["transform"]
     model = cnn_config.MODELS[model_name]["model"]
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
     testing_datasets = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
 
-    number_argmax_list = [2, 4, 6, 8, 10]
+    number_argmax_list = [1]
     for type_dist in [0]:
         print("Type_dist:", type_dist)
         for testing_dataset in testing_datasets:
