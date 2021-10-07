@@ -39,7 +39,7 @@ if __name__ == "__main__":
     for param in params:
         print("w:", param[0], "h:", param[1], "stride:", param[2])
         for name_file_reader, name_file_cam in zip(config.NAME_FILES, config.CAM_FILES):
-            create_image_dataset(name_file_reader, name_file_cam, param[0], param[1], param[2], 1)
+            create_image_dataset(name_file_reader, name_file_cam, param[0], param[1], param[2])
 
     # for name_file_reader, name_file_cam in zip(config.NAME_FILES, config.CAM_FILES):
 
