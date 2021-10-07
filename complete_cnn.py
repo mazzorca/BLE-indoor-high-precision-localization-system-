@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
     testing_datasets = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
 
-    number_argmax_list = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+    number_argmax_list = []
     for type_dist in [0]:
         print("Type_dist:", type_dist)
         for testing_dataset in testing_datasets:

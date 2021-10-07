@@ -1,6 +1,9 @@
 import torch
 import torchvision
 
+import random
+import numpy as np
+
 from RSSI_images_Dataset import RSSIImagesDataset
 from torch.utils.data import DataLoader
 
@@ -8,6 +11,12 @@ import gc
 
 import Configuration.cnn_config as cnn_conf
 import utility
+
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
 
 
 def weight_reset(m):
@@ -27,12 +36,24 @@ def train_model(model, wxh, dataset, transform, epochs, learning_rate, batch_siz
         device = "cuda:0"
         if torch.cuda.device_count() > 1:
             model = torch.nn.DataParallel(model)
-    model.to(device)
-
     print(device)
 
+    g = torch.Generator()
+    g.manual_seed(0)
+    num_worker = 2
     if seed != -1:
-        torch.manual_seed(seed)
+        torch.manual_seed(int(seed))
+        torch.use_deterministic_algorithms(True)
+        g.manual_seed(int(seed))
+        random.seed(int(seed))
+        np.random.seed(int(seed))
+
+        num_worker = 1
+
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+
+    model.to(device)
 
     train_set = RSSIImagesDataset(csv_file=f"datasets/cnn_dataset/{wxh}/{dataset}/RSSI_images.csv",
                                   root_dir=f"datasets/cnn_dataset/{wxh}/{dataset}/RSSI_images",
@@ -41,7 +62,9 @@ def train_model(model, wxh, dataset, transform, epochs, learning_rate, batch_siz
     train_loader = DataLoader(dataset=train_set,
                               batch_size=batch_size,
                               shuffle=True,
-                              num_workers=2)
+                              num_workers=num_worker,
+                              worker_init_fn=seed_worker,
+                              generator=g)
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
