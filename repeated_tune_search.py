@@ -17,7 +17,7 @@ import Configuration.cnn_config as cnn_conf
 from train_cnns import weight_reset
 
 
-model_name = 'resnet50'
+model_name = 'rfid'
 
 
 def tune_train_model(config, writer):
@@ -189,4 +189,4 @@ def main(trials):
 
 
 if __name__ == '__main__':
-    main(trials=5)
+    main(trials=10)
