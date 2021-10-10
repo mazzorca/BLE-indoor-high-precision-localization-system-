@@ -13,10 +13,41 @@ from rnn_dataset import RnnDataset
 from rnns_models import ble
 from train_cnns import weight_reset
 
+import random
+import numpy as np
+
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
 
 def tune_train_model(config):
+    seed = config["trial_num"]
     torch.manual_seed(config["trial_num"])
+    g = torch.Generator()
+    num_worker = 1
+    torch.use_deterministic_algorithms(True)
+    g.manual_seed(int(seed))
+    random.seed(int(seed))
+    np.random.seed(int(seed))
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+
     gc.collect()
+
+    model = ble.BLErnn(config["linear_mul"], config["lstm_size"])
+
+    device = "cpu"
+    if torch.cuda.is_available():
+        device = "cuda:0"
+        if torch.cuda.device_count() > 1:
+            print(torch.cuda.device_count())
+            model = torch.nn.DataParallel(model)
+    model.to(device)
+
+    print(device)
 
     name_file_reader = "BLE2605r"
 
@@ -37,26 +68,19 @@ def tune_train_model(config):
     train_loader = DataLoader(dataset=train_subset,
                               batch_size=batch_size,
                               shuffle=True,
-                              num_workers=8)
+                              num_workers=num_worker,
+                              worker_init_fn=seed_worker,
+                              generator=g)
 
     val_loader = DataLoader(dataset=val_subset,
                             batch_size=batch_size,
                             shuffle=True,
-                            num_workers=8)
+                            num_workers=num_worker,
+                            worker_init_fn=seed_worker,
+                            generator=g)
 
-    model = ble.BLErnn(config["linear_mul"], config["lstm_size"])
     loss_function = torch.nn.MSELoss()
     optimizer = torch.optim.Adagrad(model.parameters(), lr=config["lr"])
-
-    device = "cpu"
-    if torch.cuda.is_available():
-        device = "cuda:0"
-        if torch.cuda.device_count() > 1:
-            print(torch.cuda.device_count())
-            model = torch.nn.DataParallel(model)
-    model.to(device)
-
-    print(device)
 
     model.apply(weight_reset)
 
@@ -85,9 +109,9 @@ def tune_train_model(config):
             loss.backward()
             optimizer.step()
 
-            if (i % 10) == 9:
-                print(f'[{epoch + 1}, {i + 1}] loss: {training_loss / 10}')
-                training_loss = 0.0
+            # if (i % 10) == 9:
+            #     print(f'[{epoch + 1}, {i + 1}] loss: {training_loss / 10}')
+            #     training_loss = 0.0
 
         torch.cuda.empty_cache()
         gc.collect()
