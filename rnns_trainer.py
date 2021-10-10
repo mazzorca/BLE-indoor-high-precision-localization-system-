@@ -3,14 +3,50 @@ import numpy as np
 import torchvision.transforms
 from torch.utils.data import DataLoader
 
+import random
+
 from rnns_models import ble
 
 from rnn_dataset import RnnDataset
+from get_from_repeated_tune_search import get_params
 
-if __name__ == '__main__':
+
+use_best_hyper = 1
+
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
+
+def train_rnn(kalman, seed, params):
+    g = torch.Generator()
+    g.manual_seed(0)
+    num_worker = 2
+    if seed != -1:
+        torch.manual_seed(int(seed))
+        torch.use_deterministic_algorithms(True)
+        g.manual_seed(int(seed))
+        random.seed(int(seed))
+        np.random.seed(int(seed))
+
+        num_worker = 1
+
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+
+    model = ble.BLErnn(int(params["linear_mul"]), int(params["lstm_size"]))
+
+    device = "cpu"
+    if torch.cuda.is_available():
+        device = "cuda:0"
+        if torch.cuda.device_count() > 1:
+            print(torch.cuda.device_count())
+            model = torch.nn.DataParallel(model)
+    model.to(device)
+
     name_file_reader = "BLE2605r"
-    name_file_cam = "2605r0"
-
     batch_size = 32
 
     transform = torchvision.transforms.Compose([
@@ -24,11 +60,12 @@ if __name__ == '__main__':
     train_loader = DataLoader(dataset=train_set,
                               batch_size=batch_size,
                               shuffle=True,
-                              num_workers=2)
+                              num_workers=num_worker,
+                              worker_init_fn=seed_worker,
+                              generator=g)
 
-    model = ble.BLErnn()
     loss_function = torch.nn.MSELoss()
-    optimizer = torch.optim.Adagrad(model.parameters(), lr=0.01)
+    optimizer = torch.optim.Adagrad(model.parameters(), lr=params["lr"])
 
     model = model.float()
     for epoch in range(200):
@@ -36,7 +73,7 @@ if __name__ == '__main__':
         for i, training_point in enumerate(train_loader):
             optimizer.zero_grad()
 
-            RSSI_matrix, position = training_point[0], training_point[1]
+            RSSI_matrix, position = training_point[0].to(device), training_point[1].to(device)
 
             position_predicted = model(RSSI_matrix.float())
 
@@ -49,32 +86,25 @@ if __name__ == '__main__':
                 print(f'[{epoch + 1}, {i + 1}] loss: {training_loss / 10}')
                 training_loss = 0.0
 
-    torch.save(model.state_dict(), "rnns/ble.pth")
+    torch.save(model.state_dict(), f"rnns/ble_{kalman}.pth")
 
-    name_file_reader = "dati3105run2r"
-    name_file_cam = "Cal3105run2"
 
-    test_set = RnnDataset(csv_file=f"datasets/rnn_dataset/{name_file_reader}/matrix.csv",
-                          root_dir=f"datasets/rnn_dataset/{name_file_reader}",
-                          transform=transform)
+if __name__ == '__main__':
+    params = {
+        "lr": 0.01,
+        "lstm_size": 32,
+        "linear_mul": 4
+    }
 
-    test_loader = DataLoader(dataset=test_set,
-                             batch_size=1,
-                             shuffle=True,
-                             num_workers=2)
+    kalman = "kalman"
 
-    optimal_points = np.array([[], []])
-    optimal_points = optimal_points.transpose()
-    predicted_points = np.array([[], []])
-    predicted_points = predicted_points.transpose()
-    with torch.no_grad():
-        for testing_point in test_loader:
-            RSSI_matrix, position = testing_point[0], testing_point[1]
+    best_seed = -1
+    if use_best_hyper:
+        df_params, best_seed = get_params(f"{kalman}/rnn", list(params.keys()))
+        for param in params.keys():
+            params[param] = df_params.iloc[0][param]
 
-            optimal_points = np.concatenate([optimal_points, position.numpy().reshape(1, 2)])
+    print("params used:", params)
+    print("seed used:", best_seed)
 
-            position_predicted = model(RSSI_matrix.float())
-            predicted_points = np.concatenate([predicted_points, position_predicted.view(2).numpy().reshape(1, 2)])
-
-    print(predicted_points.max(axis=0))
-    print(predicted_points.min(axis=0))
+    train_rnn(kalman, best_seed, params)

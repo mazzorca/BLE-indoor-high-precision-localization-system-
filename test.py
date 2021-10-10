@@ -12,8 +12,8 @@ import RSSI_image_converter
 if __name__ == "__main__":
     # name_files_reader = ["dati3105run2r"]
     # name_files_cam = ["Cal3105run2"]
-    name_files_reader = ["BLE2605r"]
-    name_files_cam = ["2605r0"]
+    # name_files_reader = ["BLE2605r"]
+    # name_files_cam = ["2605r0"]
 
     # params = [
     #     [15, 15, 3],
@@ -43,7 +43,9 @@ if __name__ == "__main__":
 
     # for name_file_reader, name_file_cam in zip(config.NAME_FILES, config.CAM_FILES):
 
-    create_matrix_dataset(name_files_reader[0], name_files_cam[0])
+    for name_file_reader, name_file_cam in zip(config.NAME_FILES, config.CAM_FILES):
+        print("generating  dataset", name_file_reader)
+        create_matrix_dataset(name_file_reader, name_file_cam, 1)
 
     # net = ble.BLErnn()
     # print(summary(net, input_size=(1, 100, 5)))

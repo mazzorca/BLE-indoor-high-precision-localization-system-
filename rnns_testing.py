@@ -9,12 +9,28 @@ from rnns_models import ble
 
 from utility import get_square_number_array
 import statistic_utility
+import utility
+from get_from_repeated_tune_search import get_params
 
 
-if __name__ == '__main__':
-    name_file_reader = "dati3105run0r"
-    name_file_cam = "Cal3105run0"
+def load_model(model, kalman):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+    model.load_state_dict(torch.load(f"rnns/ble_{kalman}.pth", map_location=torch.device(device)))
+    return model
+
+
+def write_rnn_result(base_file_name, preds, ys):
+    utility.check_and_if_not_exists_create_folder(base_file_name)
+
+    with open(f"{base_file_name}_p.npy", 'wb') as f:
+        np.save(f, preds)
+
+    with open(f"{base_file_name}_o.npy", 'wb') as f:
+        np.save(f, ys)
+
+
+def rnn_test(model, name_file_reader, type_dist):
     transform = torchvision.transforms.Compose([
         torchvision.transforms.ToTensor()
     ])
@@ -47,21 +63,48 @@ if __name__ == '__main__':
             position_predicted = model(RSSI_matrix.float())
             predicted_points = np.concatenate([predicted_points, position_predicted.view(2).numpy().reshape(1, 2)])
 
-    euclidean_df = statistic_utility.get_ecdf_euclidean_df(optimal_points, predicted_points, "rnn")
-    euclidean_df.plot.line(
-        title="ECDF rnn",
-        xlabel="(m)",
-        ylabel="Empirical cumulative distribution function"
-    )
+    if type_dist:
+        xo, yo = get_square_number_array(optimal_points[:, 0], optimal_points[:, 1])
+        optimal_points = []
+        for square_x, square_y in zip(xo, yo):
+            square_number = square_y * 6 + square_x
+            optimal_points.append(square_number)
 
-    xo, yo = get_square_number_array(optimal_points[:, 0], optimal_points[:, 1])
-    xp, yp = get_square_number_array(predicted_points[:, 0], predicted_points[:, 1])
-    square_df = statistic_utility.get_ecdf_square_df(xo, yo, xp, yp, "rnn")
-    ax = plt.axes(title="ECDF rnn")
-    index = square_df.index.tolist()
-    ax.step(np.array(index), square_df['rnn'], label="rnn", where="post")
-    plt.legend(loc='lower right')
+        xp, yp = get_square_number_array(predicted_points[:, 0], predicted_points[:, 1])
+        predicted_points = []
+        for square_x, square_y in zip(xp, yp):
+            square_number = square_y * 6 + square_x
+            predicted_points.append(square_number)
 
-    plt.show()
+    return predicted_points, optimal_points
+
+
+if __name__ == '__main__':
+    testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
+    kalman = "kalman"
+
+    params = {
+        "lr": 0.01,
+        "lstm_size": 32,
+        "linear_mul": 4
+    }
+
+    df_params, best_seed = get_params(f"{kalman}/rnn", list(params.keys()))
+    for param in params.keys():
+        params[param] = df_params.iloc[0][param]
+        
+    model = ble.BLErnn(int(params["linear_mul"]), int(params["lstm_size"]))
+    model = load_model(model, kalman)
+
+    for name_file_reader in testing_dataset:
+        print("testing:", name_file_reader)
+        for type_dist in [0, 1]:
+            print(" type:", type_dist)
+            preds, ys = rnn_test(model, name_file_reader, type_dist)
+            type_dist = f"{type_dist}-1"
+            base_file_name = f'cnn_results/rnn_{kalman}/{type_dist}.{name_file_reader}'
+            write_rnn_result(base_file_name, preds, ys)
+
+    
 
 

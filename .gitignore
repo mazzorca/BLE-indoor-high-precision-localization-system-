@@ -1,6 +1,7 @@
 dati/
 datasets/
 kpc/
+rnns/
 plots/
 cnns/
 runs/
