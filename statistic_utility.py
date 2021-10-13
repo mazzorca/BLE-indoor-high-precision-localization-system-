@@ -16,7 +16,6 @@ def get_ecdf_euclidean_df(optimal_points, predicted_points, ecdf_name):
         bin_edges = np.insert(bin_edges, 0, 0)
     bin_edges = np.delete(bin_edges, -1)
 
-    print(bin_edges.shape)
     ecdf_dict[f'ecdf_{ecdf_name}'] = ecdf
 
     df = pd.DataFrame(ecdf_dict, index=bin_edges)
@@ -30,7 +29,6 @@ def get_ecdf_euclidean_df_resolve_auto(optimal_points, predicted_points, ecdf_na
 
     errors = np.sort(errors)
     weigth = 1/errors.shape[0]
-    print(errors.shape[0])
 
     x = [0]
     y = [0]
@@ -80,3 +78,19 @@ def get_ecdf_square_df(xo, yo, xp, yp, ecdf_name):
     df = pd.DataFrame(ecdf_dict, index=bin_edges)
 
     return df
+
+
+def meter_at_given_percentage(ecdf, percentage):
+    ecdf_name = list(ecdf.columns.values)[0]
+    percentage = percentage / 100
+    ecdf_new = ecdf[ecdf[ecdf_name] >= percentage]
+
+    return ecdf_new.index[0]
+
+
+def percentage_at_given_meter(ecdf, meter):
+    ecdf_name = list(ecdf.columns.values)[0]
+    ecdf_new = ecdf[ecdf.index >= meter]
+
+    return ecdf_new[ecdf_name][ecdf_new.index[0]]
+

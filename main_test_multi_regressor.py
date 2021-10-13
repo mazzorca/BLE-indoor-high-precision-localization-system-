@@ -67,7 +67,7 @@ if __name__ == '__main__':
         total_dataset_x = np.concatenate([set0[0], set1[0], set2[0], set3[0]])
         total_dataset_y = np.concatenate([set0[1], set1[1], set2[1], set3[1]])
 
-        x_train, x_test, y_train, y_test = train_test_split(total_dataset_x, total_dataset_y, train_size=0.50)
+        x_train, x_test, y_train, y_test = train_test_split(total_dataset_x, total_dataset_y, train_size=0.05)
 
         train_dataset = [x_train, y_train]
         test_dataset = [x_test, y_test]

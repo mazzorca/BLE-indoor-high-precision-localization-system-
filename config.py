@@ -3,8 +3,11 @@ Contains all the constants used project wide
 """
 from shapely.geometry.polygon import Polygon
 
-NAME_FILES = ["BLE2605r", "dati3105run0r", "dati3105run1r", "dati3105run2r"]
-CAM_FILES = ["2605r0", "Cal3105run0", "Cal3105run1", "Cal3105run2"]
+debug_cnn = False
+debug_rnn = False
+
+NAME_FILES = ["BLE2605r", "dati3105run0r", "dati3105run1r", "dati3105run2r", "dati0710centralpoints_r"]
+CAM_FILES = ["2605r0", "Cal3105run0", "Cal3105run1", "Cal3105run2", "tele0710centralpoints"]
 
 NUM_READERS = 5
 

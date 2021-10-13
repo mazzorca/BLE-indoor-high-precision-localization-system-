@@ -31,7 +31,7 @@ if __name__ == "__main__":
         visualizer.plot_dataset_without_outliers()
 
     if visualize == 8:
-        visualizer.plot_y_dataset()
+        visualizer.plot_y_dataset(["dati0710centralpoints_r"], ["tele0710centralpoints"])
 
     if visualize == 9:
         visualizer.plot_good_points_line('R', "kpc/kpc-good_pointsRplot.xlsx")

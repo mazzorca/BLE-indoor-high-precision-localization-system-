@@ -95,3 +95,21 @@ def translate_RSSI_to_image_greyscale(data, labels, name_experiment, w=15, h=15,
             csv_list.append([csv_filename, label[0], label[1], label[2]])
 
         utility.append_to_csv(csv_file, csv_list)
+
+
+def RSSI_numpy_to_image_greyscale(image_np, w=15, h=15):
+    x = 0
+    y = 0
+    img_array = np.zeros((h, w), dtype=np.uint8)
+    for index, row in image_np:
+        for r in range(config.NUM_READERS):
+            img_array[x, y] = row[f'reader{r}'] * 255
+            x += 1
+
+        if x == h:
+            y += 1
+            x = 0
+
+    img = Image.fromarray(img_array, 'L')
+
+    return img

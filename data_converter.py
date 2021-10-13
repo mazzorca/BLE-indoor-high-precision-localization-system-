@@ -22,7 +22,7 @@ def create_kalman_filter(kalman_filter_par):
 def get_index_taglio(tele):
     indextaglio = [100]
     for i in range(len(tele[2]) - 1):  # len(tele[2]) = lunghezza valori nella x
-        if (abs(tele[2][i] - tele[2][i + 1]) > 0.1) | (abs(tele[3][i] - tele[3][i + 1]) > 0.1):
+        if (abs(tele[2][i] - tele[2][i + 1]) > 0.1) or (abs(tele[3][i] - tele[3][i + 1]) > 0.1):
             indextaglio.append(i)
 
     indextaglio.append(len(tele[2]) - 1)
