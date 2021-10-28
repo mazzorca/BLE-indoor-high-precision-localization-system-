@@ -71,6 +71,9 @@ def get_ecdf_square_df(xo, yo, xp, yp, ecdf_name):
     if 0 not in bin_edges:
         ecdf = np.insert(ecdf, 0, 0)
         bin_edges = np.insert(bin_edges, 0, 0)
+    else:
+        ecdf = np.insert(ecdf, 0, 0)
+        bin_edges = np.insert(bin_edges, 1, 0.000001)
 
     bin_edges = np.delete(bin_edges, -1)
     ecdf_dict[ecdf_name] = ecdf

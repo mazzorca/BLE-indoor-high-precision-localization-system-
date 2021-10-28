@@ -1,6 +1,7 @@
 """
 This file contains the functions to visualize data
 """
+import matplotlib
 import matplotlib.pyplot as plt
 
 import config
@@ -27,7 +28,7 @@ from cnn_testing import load_model
 
 def plot_kalman_rssi():
     kalman_rssi_to_be_equalized, time_Reader = utility.extract_and_apply_kalman_csv("BLE2605r")
-    kalman_rssi = utility.equalize_data_with_nan(kalman_rssi_to_be_equalized)
+    kalman_rssi = utility.equalize_data_with_a_value(kalman_rssi_to_be_equalized)
     rssi_dict = {
         "Reader0": kalman_rssi[0],
         "Reader1": kalman_rssi[1],
@@ -266,7 +267,7 @@ def plot_dataset_without_outliers():
         X_wo_outlier_k[:, 0].tolist()
     ]
 
-    data = utility.equalize_data_with_nan(l)
+    data = utility.equalize_data_with_a_value(l)
     plot_dict = {
         "X_with_outlier": data[0],
         "X_without_outlier_raw": data[1],
@@ -450,7 +451,9 @@ def plot_3d_setting_time_and_predicted_point(predicted_name_files, settling_name
 
 
 def cnn_determination_square(model_name, wxh, experiment):
-    model_type = model_name.split("/")[0]
+    matplotlib.use('Agg')
+
+    model_type = model_name.split("/")[0].split("_")[0]
     model = cnn_config.MODELS[model_type]['model']
     transform = cnn_config.MODELS[model_type]['transform']
 

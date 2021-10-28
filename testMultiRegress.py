@@ -245,6 +245,8 @@ def compare_regressor_with_ecdf_euclidean(train_dataset, test_dataset, regressor
     for regressor_name in regressors:
         ecdf_df = get_ecdf_regressor_dataset(x_train, x_test, y_train, y_test, regressors[regressor_name],
                                              regressor_name)
+        meter = statistic_utility.meter_at_given_percentage(ecdf_df, 90)
+        print(regressor_name, meter)
         ecdf_total = pd.concat([ecdf_total, ecdf_df], axis=1)
 
     ecdf_total = ecdf_total.interpolate(method='linear')

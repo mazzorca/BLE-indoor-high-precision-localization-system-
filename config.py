@@ -6,8 +6,10 @@ from shapely.geometry.polygon import Polygon
 debug_cnn = False
 debug_rnn = False
 
-NAME_FILES = ["BLE2605r", "dati3105run0r", "dati3105run1r", "dati3105run2r", "dati0710centralpoints_r"]
-CAM_FILES = ["2605r0", "Cal3105run0", "Cal3105run1", "Cal3105run2", "tele0710centralpoints"]
+NAME_FILES_O = ["dati0710centralpoints_r", "dati1410allpoints_r", "dati1410onesquare_r"]
+NAME_FILES = ["BLE2605r", "dati3105run0r", "dati3105run1r", "dati3105run2r"]
+CAM_FILES_O = ["tele0710centralpoints", "tele1410allpoints", "tele1410onesquare"]
+CAM_FILES = ["2605r0", "Cal3105run0", "Cal3105run1", "Cal3105run2"]
 
 NUM_READERS = 5
 

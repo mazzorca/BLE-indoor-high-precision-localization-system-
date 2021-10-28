@@ -33,18 +33,24 @@ if __name__ == "__main__":
     model_cnn = load_model(model_cnn, parameters_saved)
     model_cnn.eval()
 
-    image_np = np.random.rand(20, 20)
+    image_np = np.random.rand(20, 20)*255
+    image_np = image_np.astype(np.uint8)
+    image_np = np.array([image_np, image_np, image_np])
+    print(image_np)
     img = Image.fromarray(image_np, 'RGB')
+    # img = img.convert('RGB')
 
     tensor_img = transform(img)
     tensor_img = tensor_img.view([1, 1, 24, 24])
+
+    tensor_np = tensor_img.numpy()
 
     with torch.no_grad():
         pred = model_cnn(tensor_img)
         probability = torch.nn.functional.softmax(pred, dim=1)
 
         probability_np = probability.cpu().numpy()[0]
-        indexs = probability_np.argsort()[-cnn_config.NUMBER_ARGMAX_EUCLIDEAN:]
+        indexs = probability_np.argsort()[-18:]
 
         normalized_sum = np.sum(probability_np[indexs])
 

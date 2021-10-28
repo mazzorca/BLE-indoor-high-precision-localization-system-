@@ -22,7 +22,7 @@ testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
     plots =
         1: compare with regressor
 """
-plots = 0
+plots = 6
 choise = 0
 
 best_models_name_cnn = [
@@ -97,8 +97,8 @@ def compare_cnns_with_ecdf(experiment_list, models_names, what_type_of_ecdf=0, t
     """
 
     name_experiment = ' '.join(experiment_list)
-    name_plot = f"{name_experiment} compare rnns"
-    save_name = f"{name_experiment.replace(' ', '_')}_rnns.png"
+    name_plot = f"{name_experiment} ble"
+    save_name = f"{name_experiment.replace(' ', '_')}_ble.png"
     if what_type_of_ecdf == 0:
         if type_dists is None:
             type_dists = ["0-1"]
@@ -317,26 +317,29 @@ def compare_best_cnns_euclidean():
         type_dist = df.loc[df[name] == best_argmax_value].index[0]
         best_argmax_index = type_dist.split("-")[1]
 
-        ecdf_df = compare_cnns_with_ecdf_euclidean([model_name], testing_dataset, [f"0-{best_argmax_index}"])
+        # ecdf_df = compare_cnns_with_ecdf_euclidean([model_name], testing_dataset, [f"0-{best_argmax_index}"])
+        ecdf_df = compare_cnns_with_ecdf_euclidean([model_name], testing_dataset, [f"0-18"])
         ecdf_total = pd.concat([ecdf_total, ecdf_df], axis=1)
 
     ecdf_total = ecdf_total.interpolate(method='linear')
 
-    save_name = "ecdf_euclidean_compare_best_cnns.png"
+    name_experiment = ' '.join(testing_dataset)
+    save_name = f"ecdf_euclidean_compare_best_cnns_{name_experiment}.png"
     ecdf_total.plot.line(
-        title=f"ECDF compare bests CNN",
+        title=f"ECDF compare bests CNNs {name_experiment}",
         xlabel="(m)",
         ylabel="Empirical cumulative distribution function"
     )
 
-    plt.savefig(f"plots/{save_name}")
+    plt.savefig(f"plots/compare_cnns/{save_name}")
 
 
 def compare_best_cnns_square():
     df = get_tables_of_best_argument_euclidean(best_models_name_cnn, testing_dataset, 90)
+    name_experiment = ' '.join(testing_dataset)
 
     fig, ax = plt.subplots()
-    ax.set_title("ECDF compare bests CNN")
+    ax.set_title(f"ECDF compare bests CNNs {name_experiment}")
     for model_name in best_models_name_cnn:
         res_folder = model_name.split("/")[0]
         model = res_folder.split("_")[0]
@@ -348,14 +351,13 @@ def compare_best_cnns_square():
         type_dist = df.loc[df[name] == best_argmax_value].index[0]
         best_argmax_index = type_dist.split("-")[1]
 
-        ax = compare_cnns_with_ecdf_square([model_name], testing_dataset, ax, [f"1-{best_argmax_index}"])
-
-    save_name = "ecdf_square_compare_best_cnns.png"
+        # ax = compare_cnns_with_ecdf_square([model_name], testing_dataset, ax, [f"1-{best_argmax_index}"])
+        ax = compare_cnns_with_ecdf_square([model_name], testing_dataset, ax, [f"1-18"])
 
     plt.legend(loc='lower right')
     plt.show()
 
-    plt.savefig(f'plots/ecdf_square_{save_name}.png')
+    plt.savefig(f'plots/compare_cnns/ecdf_square_compare_best_cnns_{name_experiment}.png')
 
 
 def get_ecdf_regressors_euclidean(experiment_list, regressor_to_use=None):
@@ -389,12 +391,14 @@ def compare_all_euclidean(experiment_list, models_conf):
 
     name_experiment = ' '.join(experiment_list)
     name_plot = f"{name_experiment} total comparison"
-    save_name = f"plots/ecdf_euclidean_{name_experiment.replace(' ', '_')}_total.png"
+    save_name = f"plots/all/ecdf_euclidean_{name_experiment.replace(' ', '_')}_total.png"
 
     for model_conf in models_conf:
         model_name = model_conf[0]
         model_type = f"0-{model_conf[1]}"
         ecdf_df = compare_cnns_with_ecdf_euclidean([model_name], experiment_list, [model_type])
+        meter = statistic_utility.meter_at_given_percentage(ecdf_df, 90)
+        print(model_name, meter)
 
         plot_total_df = pd.concat([plot_total_df, ecdf_df], axis=1)
 
@@ -443,7 +447,7 @@ def compare_all_square(experiment_list, models_conf):
     plt.legend(loc='lower right')
     plt.show()
 
-    plt.savefig(f'plots/ecdf_square_{save_name}.png')
+    plt.savefig(f'plots/all/ecdf_square_{save_name}.png')
 
 
 def plot_points_on_table(model_name, experiment_list, type_dist):
@@ -577,8 +581,7 @@ def plot_points_on_table(model_name, experiment_list, type_dist):
 if __name__ == '__main__':
     if plots == 0:
         models_names = [
-            "rnn_kalman/x",
-            "rnn_nokalman/x"
+            "ble_kalman/20-0.01-32-20x20-10"
         ]
 
         compare_cnns_with_ecdf(testing_dataset, models_names, what_type_of_ecdf=choise)
@@ -629,7 +632,7 @@ if __name__ == '__main__':
     if plots == 4:
         models_conf = [
             ["rnn_kalman/x", "1"],
-            ["ble_kalman/20-0.01-32-20x20-10", "6"]
+            ["ble_kalman/20-0.01-32-20x20-10", "18"]
         ]
 
         if choise == 0:
@@ -643,4 +646,5 @@ if __name__ == '__main__':
         plot_points_on_table(model_name, testing_dataset, "0-1")
 
     if plots == 6:
-        df = get_tables_of_best_argument_square(best_models_name_cnn, testing_dataset, 1)
+        # df = get_tables_of_best_argument_square(best_models_name_cnn, testing_dataset, 1)
+        df = get_tables_of_best_argument_euclidean(best_models_name_cnn, testing_dataset, 90)

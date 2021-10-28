@@ -5,6 +5,7 @@ import math
 import numpy as np
 import pandas as pd
 from filterpy.kalman import KalmanFilter
+import matplotlib.pyplot as plt
 
 from Configuration import dataset_config
 
@@ -20,9 +21,9 @@ def create_kalman_filter(kalman_filter_par):
 
 
 def get_index_taglio(tele):
-    indextaglio = [100]
+    indextaglio = [0]
     for i in range(len(tele[2]) - 1):  # len(tele[2]) = lunghezza valori nella x
-        if (abs(tele[2][i] - tele[2][i + 1]) > 0.1) or (abs(tele[3][i] - tele[3][i + 1]) > 0.1):
+        if (abs(tele[2][i] - tele[2][i + 1]) > 0.1) | (abs(tele[3][i] - tele[3][i + 1]) > 0.1):
             indextaglio.append(i)
 
     indextaglio.append(len(tele[2]) - 1)
@@ -55,6 +56,33 @@ def fixReader(dati, time, tele):
 
     indextaglio = get_index_taglio(tele)
     indextaglio_reader = get_index_taglio_reader(time)
+
+    print("taglio tele: ", len(indextaglio))
+    print("taglio reader1: ", len(indextaglio_reader[0]))
+    print("taglio reader2: ", len(indextaglio_reader[1]))
+    print("taglio reader3: ", len(indextaglio_reader[2]))
+    print("taglio reader4: ", len(indextaglio_reader[3]))
+    print("taglio reader5: ", len(indextaglio_reader[4]))
+
+    num_tagli = 0
+    for i in range(len(indextaglio_reader[0]) - 1):
+        if indextaglio_reader[0][i + 1] - indextaglio_reader[0][i] >= 1:
+            num_tagli += 1
+
+    print(num_tagli)
+
+    fig, ax = plt.subplots()
+    debug_index_taglio_dict = {}
+    for j in range(0):
+        debug_index_taglio = []
+        for i in range(len(time[j]) - 1):
+            elem = time[j][i + 1] - time[j][i]
+            debug_index_taglio.append(elem)
+        x_axis = list(range(len(debug_index_taglio)))
+        ax.plot(x_axis, debug_index_taglio)
+
+    # df = pd.DataFrame(debug_index_taglio_dict)
+    # df.plot.line()
 
     if len(indextaglio) < len(indextaglio_reader[0]):
         for index in indextaglio_reader:

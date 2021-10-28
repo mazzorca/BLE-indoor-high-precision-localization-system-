@@ -4,7 +4,7 @@ import config
 import visualizer
 
 if __name__ == "__main__":
-    visualize = 8
+    visualize = 13
 
     if visualize == 0:
         visualizer.plot_kalman_rssi()
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         visualizer.plot_dataset_without_outliers()
 
     if visualize == 8:
-        visualizer.plot_y_dataset(["dati0710centralpoints_r"], ["tele0710centralpoints"])
+        visualizer.plot_y_dataset()
 
     if visualize == 9:
         visualizer.plot_good_points_line('R', "kpc/kpc-good_pointsRplot.xlsx")
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     if visualize == 13:
         visualizer.plot_3d_setting_time_and_predicted_point("kpc/kpc-good_points_high_rangepercentage.xlsx",
-                                                            "kpc/kpc-settling_sample-high_range.xlsx")
+                                                            "kpc/kpc-settling-500.xlsx")
 
     if visualize == 14:
-        visualizer.cnn_determination_square("ble/20-0.01-32-25x25-10", "25x25-10", "dati3105run1r")
+        visualizer.cnn_determination_square("ble_kalman/20-0.01-32-20x20-10", "20x20-10", "dati3105run0r")

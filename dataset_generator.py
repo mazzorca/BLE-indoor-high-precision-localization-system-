@@ -277,6 +277,16 @@ if __name__ == "__main__":
     print(len(datiCSV0[0]))
     print(len(datiEMT0[0]))
 
+    datiCSV4, datiEMT4 = utility.takeData("dati0710centralpoints_r", "tele0710centralpoints")
+    utility.printDati(datiCSV4, datiEMT4)
+    print(len(datiCSV4[0]))
+    print(len(datiEMT4[0]))
+
+    datiCSV5, datiEMT5 = utility.takeData("dati1410allpoints_r", "tele1410allpoints")
+    utility.printDati(datiCSV5, datiEMT5)
+    print(len(datiCSV5[0]))
+    print(len(datiEMT5[0]))
+
     name = "Train"
     utility.saveDataArff(datiCSV0, datiEMT0, name)
     print("fine savedataarff 0")
@@ -292,6 +302,14 @@ if __name__ == "__main__":
     name = "Test3"
     utility.saveDataArff(datiCSV3, datiEMT3, name)
     print("fine savedataarff 3")
+
+    name = "Train2"
+    utility.saveDataArff(datiCSV4, datiEMT4, name)
+    print("fine savedataarff 4")
+
+    name = "TrainAll"
+    utility.saveDataArff(datiCSV5, datiEMT5, name)
+    print("fine savedataarff 4")
 
     X = [[], [], [], [], []]
     Y = [[], []]
