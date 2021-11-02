@@ -217,7 +217,7 @@ def compare_regressor_with_ecdf(train_dataset, test_dataset, name_file_reader, r
         ecdf_total = compare_regressor_with_ecdf_euclidean(train_dataset, test_dataset, regressors)
 
         ecdf_total.plot.line(
-            title=f"ECDF {name_plot}",
+            title=f"CDF {name_plot}",
             xlabel="(m)",
             ylabel="Empirical cumulative distribution function"
         )
@@ -225,7 +225,7 @@ def compare_regressor_with_ecdf(train_dataset, test_dataset, name_file_reader, r
         plt.savefig(f'plots/ecdf_euclidean_{name_plot}.png')
     if what_type_of_ecdf == 1:
         fig, ax = plt.subplots()
-        ax.set_title(f"ECDF {name_plot}")
+        ax.set_title(f"CDF {name_plot}")
         ax = compare_regressor_with_ecdf_square(train_dataset, test_dataset, regressors, ax)
 
         plt.legend(loc='lower right')
@@ -245,8 +245,8 @@ def compare_regressor_with_ecdf_euclidean(train_dataset, test_dataset, regressor
     for regressor_name in regressors:
         ecdf_df = get_ecdf_regressor_dataset(x_train, x_test, y_train, y_test, regressors[regressor_name],
                                              regressor_name)
-        meter = statistic_utility.meter_at_given_percentage(ecdf_df, 90)
-        print(regressor_name, meter)
+        max_error_at_percentage, std, mean = statistic_utility.get_numeric_values(ecdf_df, 90)
+        print(regressor_name, max_error_at_percentage, std, mean)
         ecdf_total = pd.concat([ecdf_total, ecdf_df], axis=1)
 
     ecdf_total = ecdf_total.interpolate(method='linear')

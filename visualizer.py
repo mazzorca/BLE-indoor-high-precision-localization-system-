@@ -1,6 +1,8 @@
 """
 This file contains the functions to visualize data
 """
+import json
+
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -507,3 +509,34 @@ def cnn_determination_square(model_name, wxh, experiment):
 
             plt.savefig(name)
             plt.close()
+
+
+def plot_trajectory(trajectory):
+    with open(f'{trajectory}.json', ) as f:
+        data = json.load(f)
+
+    fig, ax = plt.subplots()
+
+    for point in data["points"]:
+        ax.scatter(point['x'], point['y'], c='red')
+
+    plt.xlim(0, 1.80)
+    plt.ylim(0, 0.90)
+
+    major_ticks_x = np.arange(0, 1.81, 0.30)
+    # minor_ticks_x = np.arange(0, 1.81, 0.10)
+    major_ticks_y = np.arange(0, 0.91, 0.30)
+    # minor_ticks_y = np.arange(0, 0.91, 0.10)
+
+    ax.set_xticks(major_ticks_x)
+    # ax.set_xticks(minor_ticks_x, minor=True)
+    ax.set_yticks(major_ticks_y)
+    # ax.set_yticks(minor_ticks_y, minor=True)
+
+    ax.grid(which='both')
+    plt.title("Positioning points in the realtime experiment")
+    plt.ylabel('Y')
+    plt.xlabel('X')
+
+    plt.show()
+    plt.savefig("plots/near_trajectory_in_the_table.png")

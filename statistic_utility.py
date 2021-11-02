@@ -97,3 +97,12 @@ def percentage_at_given_meter(ecdf, meter):
 
     return ecdf_new[ecdf_name][ecdf_new.index[0]]
 
+
+def get_numeric_values(ecdf, percentage):
+    df = ecdf.index.values
+    ecdf_name = list(ecdf.columns.values)[0]
+    max_error_at_percentage = meter_at_given_percentage(ecdf, percentage)
+    std = df.std()
+    mean = df.mean()
+
+    return max_error_at_percentage, std, mean

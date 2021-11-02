@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import time
 import json
 import os
+import paramiko as paramiko
 
 import utility
 
@@ -15,8 +16,20 @@ from realtime.cnn_process import worker_evaluate_cnn
 from realtime.rnn_process import worker_evaluate_rnn
 from realtime.regressor_process import worker_evaluate_regressor
 
+DIM_REALTIME = 5
 
-def new_client(clientsocket, addr):
+readers = ["192.168.1.2",
+           "192.168.1.29",
+           "192.168.1.48",
+           "192.168.1.6",
+           "192.168.1.26"]
+username = "pi"
+password = "raspberry"
+
+ipclient = ["192.168.1.2", "192.168.1.29", "192.168.1.48", "192.168.1.6", "192.168.1.26"]
+
+
+def new_client(clientsocket, addr, dataReader, packet):
     index = 0
     if addr[0] == ipclient[0]:
         index = 0
@@ -71,13 +84,27 @@ def write_reader_rssi(index, type_run, rssi_list):
     utility.append_to_csv(f"{base_name}{index}.csv", rssi_list)
 
 
-if __name__ == '__main__':
-    multiprocessing.freeze_support()
+def realtime_process(n, ready, auto_launch=False):
+    print('Process: ' + str(n))
+
     plt.ion()
 
-    manager = Manager()
     s = socket.socket()
     port = 5000
+
+    manager = Manager()
+
+    dataReader = manager.list([
+        manager.list([-45]),
+        manager.list([-45]),
+        manager.list([-45]),
+        manager.list([-45]),
+        manager.list([-45])
+    ])
+
+    packet = manager.list()
+    for i in range(5):
+        packet.append(0)
 
     start_valuating = Value('i', False)
     rssi_value_cnn = manager.list([
@@ -104,12 +131,10 @@ if __name__ == '__main__':
         [0, 0],
         [0, 0]
     ])
-    print(new_pos_regr)
     proc_regr = Process(target=worker_evaluate_regressor,
                         args=("regressor", start_valuating, rssi_value_regr, new_pos_regr,))
     proc_regr.start()
 
-    ipclient = ["192.168.1.2", "192.168.1.29", "192.168.1.48", "192.168.1.6", "192.168.1.26"]
     host = "192.168.1.19"
     connected = 0
     threads = []
@@ -120,17 +145,6 @@ if __name__ == '__main__':
 
     values = [0.0, 0.0, 0.0, 0.0, 0.0]
 
-    packet = manager.list()
-    for i in range(5):
-        packet.append(0)
-
-    dataReader = manager.list([
-        manager.list([-45]),
-        manager.list([-45]),
-        manager.list([-45]),
-        manager.list([-45]),
-        manager.list([-45])
-    ])
 
     A = 1  # No process innovation
     C = 1  # Measurement
@@ -146,8 +160,21 @@ if __name__ == '__main__':
         kalman_filters.append(k)
 
     fig, ax = plt.subplots()
-    x_plot, y_plot = [0], [0]
-    sc = ax.scatter(x_plot, y_plot)
+    x_plot = [
+        [0 for _ in range(DIM_REALTIME)],
+        [0 for _ in range(DIM_REALTIME)],
+        [0 for _ in range(DIM_REALTIME)]
+    ]
+    y_plot = [
+        [0 for _ in range(DIM_REALTIME)],
+        [0 for _ in range(DIM_REALTIME)],
+        [0 for _ in range(DIM_REALTIME)]
+    ]
+    c_list = [i for i in range(DIM_REALTIME)]
+    sc = [ax.scatter(x_plot[0], y_plot[0], s=250, c=c_list, cmap="Blues", label="CNN"),
+          ax.scatter(x_plot[1], y_plot[1], s=250, c=c_list, cmap="Greens", label="k-NN"),
+          ax.scatter(x_plot[2], y_plot[2], s=250, c=c_list, cmap="Reds", label="RNN")]
+
     plt.xlim(0, 1.80)
     plt.ylim(0, 0.90)
     # Major ticks every 20, minor ticks every 5
@@ -165,20 +192,23 @@ if __name__ == '__main__':
     plt.title("Tracciamento Real time Tag")
     plt.ylabel('Posizione Y')
     plt.xlabel('Posizione X')
-    plt.legend('punto nello spazio')
+    plt.legend()
 
+    legend = ax.get_legend()
+    legend.legendHandles[0].set_color(plt.cm.Blues(.8))
+    legend.legendHandles[1].set_color(plt.cm.Greens(.8))
+    legend.legendHandles[2].set_color(plt.cm.Reds(.8))
 
-    def animate(xt, yt):
-        x_plot.append(xt)
-        y_plot.append(yt)
+    def animate(xt, yt, index):
+        x_plot[index].append(xt)
+        y_plot[index].append(yt)
 
-        if len(x_plot) > 5:
-            x_plot.pop(0)
-            y_plot.pop(0)
-        sc.set_offsets(np.c_[x_plot, y_plot])
+        if len(x_plot[index]) > DIM_REALTIME:
+            x_plot[index].pop(0)
+            y_plot[index].pop(0)
+        sc[index].set_offsets(np.c_[x_plot[index], y_plot[index]])
         plt.show(block=False)
         plt.pause(0.001)
-
 
     x = 0
     y = 0
@@ -187,27 +217,41 @@ if __name__ == '__main__':
 
     first_values = True
     c = []
-    trajectory = load_trajectory("central_trajectory")
+    trajectory = load_trajectory("endless")
     index_trajcetory = 0
 
-    type_run = trajectory["type_run"]
-    initialize_reader_csv(type_run)
-    realtime_regressor_pos_filename = {}
     names = ["Random forest", "Nearest Neighbors U", "Nearest Neighbors D", "Decision Tree", "tot"]
+    type_run = trajectory["type_run"]
+    realtime_regressor_pos_filename = {}
     for name in names:
         realtime_regressor_pos_filename[name] = f"realtime_data/{name}_pos_{type_run}.csv"
-        utility.append_to_csv(realtime_regressor_pos_filename[name], [["x", "y", "time"]])
-
     realtime_cnn_pos_filename = f"realtime_data/cnn_pos_{type_run}.csv"
-    utility.append_to_csv(realtime_cnn_pos_filename, [["x", "y", "time"]])
     realtime_rnn_pos_filename = f"realtime_data/rnn_pos_{type_run}.csv"
-    utility.append_to_csv(realtime_rnn_pos_filename, [["x", "y", "time"]])
+
+    if trajectory["save"]:
+        initialize_reader_csv(type_run)
+        for name in names:
+            utility.append_to_csv(realtime_regressor_pos_filename[name], [["x", "y", "time"]])
+
+        utility.append_to_csv(realtime_cnn_pos_filename, [["x", "y", "time"]])
+        utility.append_to_csv(realtime_rnn_pos_filename, [["x", "y", "time"]])
 
     start = False
     sec_left = trajectory["points"][0]["time"]
     deltaT = trajectory["deltaT"]
     transition_timer = 0
     transition = False
+    if n != "single":
+        ready.value = True
+    if auto_launch:
+        for reader in readers:
+            print("reader")
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(reader, username=username, password=password)
+            command = "sudo iwconfig wlan0 power off; cd Desktop/BLE-Beacon-Scanner; python3 BeaconScanner.py"
+            ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command)
+
     while True:
         try:
             if connected < 5:
@@ -216,9 +260,9 @@ if __name__ == '__main__':
                 c.append(new_c)
                 print('Got connection from', addr)
                 connected += 1
-                new_client(new_c, addr)
+                new_client(new_c, addr, dataReader, packet)
             else:
-                time.sleep(1)
+                time.sleep(0.5)
                 if not start:
                     command = input("Press s to start the realtime")
                     if command == 's':
@@ -268,7 +312,8 @@ if __name__ == '__main__':
                         all_data.append(kalman_filters[i].current_state())
                         # rssi_value[i] = raw_rssi
 
-                    write_reader_rssi(i, type_run, raw_rssi_list)
+                    if trajectory["save"]:
+                        write_reader_rssi(i, type_run, raw_rssi_list)
 
                     values[i] = kalman_filters[i].current_state()
                     rssi_value_regr[i] = values[i]
@@ -280,7 +325,7 @@ if __name__ == '__main__':
                         raw_rssi_only.append(-45)
 
                     rssi_value_rnn[i] = max(all_data)
-                    rssi_value_cnn[i] = raw_rssi_only
+                    rssi_value_cnn[i] = all_data
                     p.append(packet[i])
                     packet[i] = 0
 
@@ -289,14 +334,16 @@ if __name__ == '__main__':
                 x_cnn = new_pos_cnn[0]
                 y_cnn = new_pos_cnn[1]
                 print(f"cnn resnet50 no_kalman: x", x_cnn, "y", y_cnn)
-                utility.append_to_csv(realtime_cnn_pos_filename, [[x_cnn, y_cnn, ts]])
-                # animate(new_pos_cnn[0], new_pos_cnn[1])
+                if trajectory["save"]:
+                    utility.append_to_csv(realtime_cnn_pos_filename, [[x_cnn, y_cnn, ts]])
+                animate(x_cnn, y_cnn, 0)
 
                 x_rnn = new_pos_rnn[0]
                 y_rnn = new_pos_rnn[1]
-                print(f"rnn nokalman: x", new_pos_rnn[0], "y", new_pos_rnn[1])
-                utility.append_to_csv(realtime_rnn_pos_filename, [[x_rnn, y_rnn, ts]])
-                # animate(new_pos_rnn[0], new_pos_rnn[1])
+                print(f"rnn nokalman: x", x_rnn, "y", y_rnn)
+                if trajectory["save"]:
+                    utility.append_to_csv(realtime_rnn_pos_filename, [[x_rnn, y_rnn, ts]])
+                # animate(x_rnn, y_rnn, 2)
 
                 pos_regr_save_csv = []
                 for rn, file_name in enumerate(realtime_regressor_pos_filename.keys()):
@@ -304,8 +351,11 @@ if __name__ == '__main__':
                     y = new_pos_regr[rn][1]
                     print(names[rn], "x:", x, "y:", y, flush=True)
 
-                    utility.append_to_csv(realtime_regressor_pos_filename[file_name], [[x, y, ts]])
-                    # animate(xc, yc)
+                    if trajectory["save"]:
+                        utility.append_to_csv(realtime_regressor_pos_filename[file_name], [[x, y, ts]])
+
+                    if rn == 2:
+                        animate(x, y, 1)
 
                 print("Pacchetti raccolti:", p[0], p[1], p[2], p[3], p[4], flush=True)
 
@@ -325,3 +375,8 @@ if __name__ == '__main__':
                 if connection:
                     connection.close()
             break
+
+
+if __name__ == '__main__':
+    multiprocessing.freeze_support()
+    realtime_process("single", True, True)

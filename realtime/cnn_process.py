@@ -54,7 +54,7 @@ def worker_evaluate_cnn(n, start_valuating, rssi_value, new_pos_cnn):
     # initialize cnn # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     model_name = "ble"
-    kalman_cnn = "nokalman"
+    kalman_cnn = "kalman"
     transform_cnn = cnn_config.MODELS[model_name]["transform"]
     model_cnn = cnn_config.MODELS[model_name]["model"]
 

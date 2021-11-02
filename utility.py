@@ -290,7 +290,7 @@ def printDati(dati, confronto):
 
     axs[0].plot(confronto[0], 'b', linewidth=2.0, label="confronto x")
     axs[0].plot(confronto[1], 'r', linewidth=2.0, label="confronto y")
-    plt.legend()
+    axs[0].legend()
     plt.show()
 
 

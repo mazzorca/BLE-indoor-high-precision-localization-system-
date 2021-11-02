@@ -13,17 +13,17 @@ import utility
 import testMultiRegress
 import dataset_generator
 
-testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
+# testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
 # testing_dataset = ["dati3105run0r"]
 # testing_dataset = ["dati3105run1r"]
-# testing_dataset = ["dati3105run2r"]
+testing_dataset = ["dati3105run2r"]
 
 """
     plots =
         1: compare with regressor
 """
-plots = 6
-choise = 0
+plots = 4
+choise = 1
 
 best_models_name_cnn = [
     "resnet50_kalman/20-0.01-32-15x15-10",
@@ -106,18 +106,18 @@ def compare_cnns_with_ecdf(experiment_list, models_names, what_type_of_ecdf=0, t
         ecdf_total = compare_cnns_with_ecdf_euclidean(models_names, experiment_list, type_dists)
 
         ecdf_total.plot.line(
-            title=f"ECDF {name_plot}",
+            title=f"CDF {name_plot}",
             xlabel="(m)",
             ylabel="Empirical cumulative distribution function",
             cmap="plasma"
         )
 
-        utility.check_and_if_not_exists_create_folder(f"plots/ecdf_euclidean_{save_name}")
-        plt.savefig(f"plots/ecdf_euclidean_{save_name}")
+        utility.check_and_if_not_exists_create_folder(f"plots/cdf_euclidean_{save_name}")
+        plt.savefig(f"plots/cdf_euclidean_{save_name}")
 
     if what_type_of_ecdf == 1:
         fig, ax = plt.subplots()
-        ax.set_title(f"ECDF {name_plot}")
+        ax.set_title(f"CDF {name_plot}")
 
         if type_dists is None:
             type_dists = ["1-1"]
@@ -127,7 +127,7 @@ def compare_cnns_with_ecdf(experiment_list, models_names, what_type_of_ecdf=0, t
         plt.legend(loc='lower right')
         plt.show()
 
-        plt.savefig(f'plots/ecdf_square_{save_name}')
+        plt.savefig(f'plots/cdf_square_{save_name}')
 
 
 def compare_cnns_with_ecdf_euclidean(models_names, experiment_list, type_dists):
@@ -391,20 +391,19 @@ def compare_all_euclidean(experiment_list, models_conf):
 
     name_experiment = ' '.join(experiment_list)
     name_plot = f"{name_experiment} total comparison"
-    save_name = f"plots/all/ecdf_euclidean_{name_experiment.replace(' ', '_')}_total.png"
+    save_name = f"plots/all/cdf_euclidean_{name_experiment.replace(' ', '_')}_total.png"
 
     for model_conf in models_conf:
         model_name = model_conf[0]
         model_type = f"0-{model_conf[1]}"
         ecdf_df = compare_cnns_with_ecdf_euclidean([model_name], experiment_list, [model_type])
-        meter = statistic_utility.meter_at_given_percentage(ecdf_df, 90)
-        print(model_name, meter)
+        max_error_at_percentage, std, mean = statistic_utility.get_numeric_values(ecdf_df, 90)
+        print(model_name, max_error_at_percentage, std, mean)
 
         plot_total_df = pd.concat([plot_total_df, ecdf_df], axis=1)
 
     regressor_to_use = {
-        "Nearest Neighbors U": testMultiRegress.CLASSIFIERS_DICT["Nearest Neighbors U"],
-        "Nearest Neighbors D": testMultiRegress.CLASSIFIERS_DICT["Nearest Neighbors U"]
+        "Nearest Neighbors D": testMultiRegress.CLASSIFIERS_DICT["Nearest Neighbors D"]
     }
     ecdf_total_regressor = get_ecdf_regressors_euclidean(experiment_list, regressor_to_use=regressor_to_use)
 
@@ -413,7 +412,7 @@ def compare_all_euclidean(experiment_list, models_conf):
     plot_total_df = plot_total_df.interpolate(method='linear')
 
     plot_total_df.plot.line(
-        title=f"ECDF {name_plot}",
+        title=f"CDF {name_plot}",
         xlabel="(m)",
         ylabel="Empirical cumulative distribution function"
     )
@@ -425,10 +424,10 @@ def compare_all_euclidean(experiment_list, models_conf):
 def compare_all_square(experiment_list, models_conf):
     name_experiment = ' '.join(experiment_list)
     name_plot = f"{name_experiment} total comparison"
-    save_name = f"ecdf_square_{name_experiment.replace(' ', '_')}_total.png"
+    save_name = f"cdf_square_{name_experiment.replace(' ', '_')}_total.png"
 
     fig, ax = plt.subplots()
-    ax.set_title(f"ECDF {name_plot}")
+    ax.set_title(f"CDF {name_plot}")
 
     for model_conf in models_conf:
         model_name = model_conf[0]
@@ -439,8 +438,7 @@ def compare_all_square(experiment_list, models_conf):
                                            )
 
     regressor_to_use = {
-        "Nearest Neighbors U": testMultiRegress.CLASSIFIERS_DICT["Nearest Neighbors U"],
-        "Nearest Neighbors D": testMultiRegress.CLASSIFIERS_DICT["Nearest Neighbors U"]
+        "Nearest Neighbors D": testMultiRegress.CLASSIFIERS_DICT["Nearest Neighbors D"]
     }
     ax = get_ecdf_regressors_square(experiment_list, ax, regressor_to_use=regressor_to_use)
 

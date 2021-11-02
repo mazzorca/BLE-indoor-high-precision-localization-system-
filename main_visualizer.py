@@ -4,7 +4,7 @@ import config
 import visualizer
 
 if __name__ == "__main__":
-    visualize = 13
+    visualize = 14
 
     if visualize == 0:
         visualizer.plot_kalman_rssi()

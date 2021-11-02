@@ -11,6 +11,9 @@ NAME_FILES = ["BLE2605r", "dati3105run0r", "dati3105run1r", "dati3105run2r"]
 CAM_FILES_O = ["tele0710centralpoints", "tele1410allpoints", "tele1410onesquare"]
 CAM_FILES = ["2605r0", "Cal3105run0", "Cal3105run1", "Cal3105run2"]
 
+NAME_FILES_S = ["s0_2910_r"]
+CAM_FILES_S = ["s0_2910"]
+
 NUM_READERS = 5
 
 N_NEIGHBOURS = 100

@@ -14,7 +14,7 @@ if __name__ == '__main__':
     pld = [cd1, cd2, poweroff]
     print(pld)
     for i in range(len(ipclient)):
-        # realtime='python3 SaveData.py '+namefile+str(i+1)+' \n'
+        # realtime='python3 SaveData.py '+namefile+str(i+1)+' \n'ssh
         realtime = 'python3 vi .py ' + namefile + str(i + 1) + ' \n'
         pld = [cd1, cd2, poweroff, realtime]
         puttywin = op.OpenPuttyAndSendPayload(pld=pld, title='Putty test', user='pi', pwd='raspberry', host=ipclient[i],
