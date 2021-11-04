@@ -1,0 +1,12 @@
+{
+  "type_run": "endless",
+  "points": [
+    {
+      "x": 0.15,
+      "y": 0.75,
+      "time": 10000000
+    }
+  ],
+  "deltaT": 1,
+  "save": false
+}

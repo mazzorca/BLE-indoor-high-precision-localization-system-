@@ -1,83 +1,35 @@
 import socket
 import multiprocessing
-from multiprocessing import Process, Manager
+from multiprocessing import Process, Manager, Value
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
-import csv
 import time
-import arff
+import json
+import os
+import paramiko as paramiko
+
+import utility
+
 from kalman import SingleStateKalmanFilter
-from moving_average import MovingAverageFilter
-import matplotlib.animation
 
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.cross_decomposition import PLSRegression
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.neural_network import MLPRegressor
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import DotProduct, WhiteKernel
+from realtime.cnn_process import worker_evaluate_cnn
+from realtime.rnn_process import worker_evaluate_rnn
+from realtime.regressor_process import worker_evaluate_regressor
 
+DIM_REALTIME = 5
 
-def cart2pol(x, y):
-    rho = np.zeros(len(x))
-    phi = np.zeros(len(y))
-    for i in range(len(x)):
-        rho[i] = np.sqrt(x[i] ** 2 + y[i] ** 2)
-        phi[i] = np.arctan2(y[i], x[i])
-    return (rho, phi)
+readers = ["192.168.1.2",
+           "192.168.1.29",
+           "192.168.1.48",
+           "192.168.1.6",
+           "192.168.1.26"]
+username = "pi"
+password = "raspberry"
+
+ipclient = ["192.168.1.2", "192.168.1.29", "192.168.1.48", "192.168.1.6", "192.168.1.26"]
 
 
-def pol2cart(rho, phi):
-    x = np.zeros(len(rho))
-    y = np.zeros(len(phi))
-    for i in range(len(x)):
-        x[i] = rho[i] * np.cos(phi[i])
-        y[i] = rho[i] * np.sin(phi[i])
-    return (x, y)
-
-
-def pol2cartS(rho, phi):
-    x = 0
-    y = 0
-    x = rho * np.cos(phi)
-    y = rho * np.sin(phi)
-    return (x, y)
-
-
-def objective(x, a, b, c):
-    return (a * x ** 2) + (b * x) + c
-
-
-def new_evaluete1(v):
-    ret = []
-    array = np.array(v)
-    array = array.reshape(1, -1)
-    for clf in regressions:
-        Z = clf.predict(array)
-        tx, ty = pol2cart(Z[:, 0], Z[:, 1])
-        tx = tx * 100
-        ty = ty * 100
-        ret.append([tx, ty])
-        # ret.append([Z[:,0],Z[:,1]])
-    return ret
-
-
-def new_evaluete(v):
-    ret = []
-    array = np.array(v)
-    array = array.reshape(1, -1)
-    for clf in regressions:
-        Z = clf.predict(array)
-        tx, ty = pol2cartS(Z[0][0], Z[0][1])
-        ret.append([tx, ty])
-        # ret.append([Z[:,0],Z[:,1]])
-    return ret
-
-
-def new_client(clientsocket, addr):
+def new_client(clientsocket, addr, dataReader, packet):
     index = 0
     if addr[0] == ipclient[0]:
         index = 0
@@ -109,169 +61,322 @@ def worker(n, socket, k, p, ):
     socket.close()
 
 
-if __name__ == '__main__':
+def load_trajectory(trajectory_name):
+    if not trajectory_name:
+        return None
 
-    multiprocessing.freeze_support()
+    with open(f'{trajectory_name}.json', ) as f:
+        data = json.load(f)
 
-    manager = Manager()
+    return data
+
+
+def initialize_reader_csv(type_run):
+    base_name = f"realtime_data/rssi_{type_run}_r"
+
+    for i in range(5):
+        utility.append_to_csv(f"{base_name}{i}.csv", [[f"RSSI", "time"]])
+
+
+def write_reader_rssi(index, type_run, rssi_list):
+    base_name = f"realtime_data/rssi_{type_run}_r"
+
+    utility.append_to_csv(f"{base_name}{index}.csv", rssi_list)
+
+
+def realtime_process(n, ready, auto_launch=False):
+    print('Process: ' + str(n))
+
+    plt.ion()
+
     s = socket.socket()
     port = 5000
 
-    ipclient = ["192.168.1.2", "192.168.1.29", "192.168.1.48", "192.168.1.6", "192.168.1.26"]
-    host = "192.168.1.24"
-    connected = 0
-    threads = []
+    manager = Manager()
 
-    values = [0.0, 0.0, 0.0, 0.0, 0.0]
+    dataReader = manager.list([
+        manager.list([-45]),
+        manager.list([-45]),
+        manager.list([-45]),
+        manager.list([-45]),
+        manager.list([-45])
+    ])
 
     packet = manager.list()
     for i in range(5):
         packet.append(0)
 
-    dataReader = manager.list(
-        [manager.list([-45]), manager.list([-45]), manager.list([-45]), manager.list([-45]), manager.list([-45])])
+    start_valuating = Value('i', False)
+    rssi_value_cnn = manager.list([
+        [-45],
+        [-45],
+        [-45],
+        [-45],
+        [-45]
+    ])
+    new_pos_cnn = manager.list([0, 0])
+    proc_cnn = Process(target=worker_evaluate_cnn, args=("cnn", start_valuating, rssi_value_cnn, new_pos_cnn,))
+    proc_cnn.start()
 
-    # datasetRY = arff.load(open('datasetTele1006ALLy0.arff'))
+    rssi_value_rnn = manager.list([-45, -45, -45, -45, -45])
+    new_pos_rnn = manager.list([0, 0])
+    proc_rnn = Process(target=worker_evaluate_rnn, args=("rnn", start_valuating, rssi_value_rnn, new_pos_rnn,))
+    proc_rnn.start()
 
-    # datasetRX = arff.load(open('datasetTele1006ALLx0.arff'))
+    rssi_value_regr = manager.list([-45, -45, -45, -45, -45])
+    new_pos_regr = manager.list([
+        [0, 0],
+        [0, 0],
+        [0, 0],
+        [0, 0],
+        [0, 0]
+    ])
+    proc_regr = Process(target=worker_evaluate_regressor,
+                        args=("regressor", start_valuating, rssi_value_regr, new_pos_regr,))
+    proc_regr.start()
 
-    datasetRY = arff.load(open('datasets/arff/datasetTrain0y0.arff'))
-    dataRY = np.array(datasetRY['data'])
+    host = "192.168.1.19"
+    connected = 0
+    threads = []
 
-    datasetRX = arff.load(open('datasets/arff/datasetTrain0x0.arff'))
-    dataRX = np.array(datasetRX['data'])
+    s.bind((host, port))  # Bind to the port
+    s.listen(5)  # Now wait for client connection.
+    print('Server started!')
 
-    X = dataRX[:, :5]
-    ax = np.array(dataRX[:, 5:6])
-    ay = np.array(dataRY[:, 5:6])
-    ry, py = cart2pol(ax, ay)
+    values = [0.0, 0.0, 0.0, 0.0, 0.0]
 
-    y = np.column_stack([ry, py])
 
-    x_train, x_test, y_train, y_test = train_test_split(X, y, train_size=0.80)
-    n_neighbors = 100
-    names = ["Random forest", "Nearest Neighbors U", "Nearest Neighbors D", "Decision Tree"]
-
-    regressions = [
-        RandomForestRegressor(),
-        KNeighborsRegressor(n_neighbors, weights='uniform'),
-        KNeighborsRegressor(n_neighbors, weights='distance'),
-        DecisionTreeRegressor(random_state=0)
-    ]
-
-    for name, clf in zip(names, regressions):
-        clf.fit(x_train, y_train)
-        print("fit " + name)
-
-    A = 1  # No process innovation
-    C = 1  # Measurement
-    B = 1  # No control input
-    Q = 0.0001  # Process covariance 0.00001
-    R = 0.5  # Measurement covariance 0.01
-    x = -35  # Initial estimate
-    P = 1  # Initial covariance 
-    '''
     A = 1  # No process innovation
     C = 1  # Measurement
     B = 1  # No control input
     Q = 0.00001  # Process covariance 0.00001
-    R = 0.01# Measurement covariance 0.01
-    x = -45  # Initial estimate
+    R = 0.01  # Measurement covariance 0.01
+    x = -35  # Initial estimate
     P = 1  # Initial covariance
-    '''
 
     kalman_filters = []
     for i in range(5):
         k = SingleStateKalmanFilter(A, B, C, x, P, Q, R)
         kalman_filters.append(k)
 
-    filtro_output_x = MovingAverageFilter(2)
-    filtro_output_y = MovingAverageFilter(2)
-
     fig, ax = plt.subplots()
-    x_plot, y_plot = [0], [0]
-    sc = ax.scatter(x_plot, y_plot)
-    plt.xlim(0, 180)
-    plt.ylim(0, 90)
-    # Major ticks every 20, minor ticks every 5
-    major_ticks_x = np.arange(0, 181, 30)
-    minor_ticks_x = np.arange(0, 181, 15)
-    major_ticks_y = np.arange(0, 91, 30)
-    minor_ticks_y = np.arange(0, 91, 15)
+    x_plot = [
+        [0 for _ in range(DIM_REALTIME)],
+        [0 for _ in range(DIM_REALTIME)],
+        [0 for _ in range(DIM_REALTIME)]
+    ]
+    y_plot = [
+        [0 for _ in range(DIM_REALTIME)],
+        [0 for _ in range(DIM_REALTIME)],
+        [0 for _ in range(DIM_REALTIME)]
+    ]
+    c_list = [i for i in range(DIM_REALTIME)]
+    sc = [ax.scatter(x_plot[0], y_plot[0], s=250, c=c_list, cmap="Blues", label="CNN"),
+          ax.scatter(x_plot[1], y_plot[1], s=250, c=c_list, cmap="Greens", label="k-NN"),
+          ax.scatter(x_plot[2], y_plot[2], s=250, c=c_list, cmap="Reds", label="RNN")]
 
-    ax.set_xticks(major_ticks_x)
-    # ax.set_xticks(minor_ticks_x, minor=True)
-    ax.set_yticks(major_ticks_y)
-    # ax.set_yticks(minor_ticks_y, minor=True)
+    plt.xlim(0, 1.80)
+    plt.ylim(0, 0.90)
+    # Major ticks every 20, minor ticks every 5
+    # major_ticks_x = np.arange(0, 1.81, 0.30)
+    minor_ticks_x = np.arange(0, 1.81, 0.10)
+    # major_ticks_y = np.arange(0, 0.91, 0.30)
+    minor_ticks_y = np.arange(0, 0.91, 0.10)
+
+    # ax.set_xticks(major_ticks_x)
+    ax.set_xticks(minor_ticks_x, minor=True)
+    # ax.set_yticks(major_ticks_y)
+    ax.set_yticks(minor_ticks_y, minor=True)
     # And a corresponding grid
     ax.grid(which='both')
     plt.title("Tracciamento Real time Tag")
     plt.ylabel('Posizione Y')
     plt.xlabel('Posizione X')
-    plt.legend('punto nello spazio')
+    plt.legend()
 
+    legend = ax.get_legend()
+    legend.legendHandles[0].set_color(plt.cm.Blues(.8))
+    legend.legendHandles[1].set_color(plt.cm.Greens(.8))
+    legend.legendHandles[2].set_color(plt.cm.Reds(.8))
 
-    def animate(xt, yt):
-        x_plot.append(xt)
-        y_plot.append(yt)
-        if len(x_plot) > 5:
-            x_plot.pop(0)
-            y_plot.pop(0)
-        sc.set_offsets(np.c_[x_plot, y_plot])
+    def animate(xt, yt, index):
+        x_plot[index].append(xt)
+        y_plot[index].append(yt)
+
+        if len(x_plot[index]) > DIM_REALTIME:
+            x_plot[index].pop(0)
+            y_plot[index].pop(0)
+        sc[index].set_offsets(np.c_[x_plot[index], y_plot[index]])
         plt.show(block=False)
         plt.pause(0.001)
 
+    x = 0
+    y = 0
+    index_rnn = 0
+    max_index_rnn = 10
 
-    s.bind((host, port))  # Bind to the port
-    s.listen(5)  # Now wait for client connection.
-    print('Server started!')
-    print('Waiting for clients...')
+    first_values = True
+    c = []
+    trajectory = load_trajectory("endless")
+    index_trajcetory = 0
+
+    names = ["Random forest", "Nearest Neighbors U", "Nearest Neighbors D", "Decision Tree", "tot"]
+    type_run = trajectory["type_run"]
+    realtime_regressor_pos_filename = {}
+    for name in names:
+        realtime_regressor_pos_filename[name] = f"realtime_data/{name}_pos_{type_run}.csv"
+    realtime_cnn_pos_filename = f"realtime_data/cnn_pos_{type_run}.csv"
+    realtime_rnn_pos_filename = f"realtime_data/rnn_pos_{type_run}.csv"
+
+    if trajectory["save"]:
+        initialize_reader_csv(type_run)
+        for name in names:
+            utility.append_to_csv(realtime_regressor_pos_filename[name], [["x", "y", "time"]])
+
+        utility.append_to_csv(realtime_cnn_pos_filename, [["x", "y", "time"]])
+        utility.append_to_csv(realtime_rnn_pos_filename, [["x", "y", "time"]])
+
+    start = False
+    sec_left = trajectory["points"][0]["time"]
+    deltaT = trajectory["deltaT"]
+    transition_timer = 0
+    transition = False
+    if n != "single":
+        ready.value = True
+    if auto_launch:
+        for reader in readers:
+            print("reader")
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(reader, username=username, password=password)
+            command = "sudo iwconfig wlan0 power off; cd Desktop/BLE-Beacon-Scanner; python3 BeaconScanner.py"
+            ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command)
 
     while True:
-        if connected < 5:
-            print("aspetto connessioni")
-            c, addr = s.accept()
-            print('Got connection from', addr)
-            connected += 1
-            new_client(c, addr)
-        else:
+        try:
+            if connected < 5:
+                print("Waiting connection")
+                new_c, addr = s.accept()
+                c.append(new_c)
+                print('Got connection from', addr)
+                connected += 1
+                new_client(new_c, addr, dataReader, packet)
+            else:
+                time.sleep(0.5)
+                if not start:
+                    command = input("Press s to start the realtime")
+                    if command == 's':
+                        start = True
+                    continue
 
-            time.sleep(1)
-            p = []
-            for i in range(5):
-                for d in dataReader[i]:
-                    kalman_filters[i].step(0, dataReader[i].pop(0))
-                values[i] = kalman_filters[i].current_state()
-                p.append(packet[i])
-                packet[i] = 0
+                start_valuating = Value('i', True)
 
-            new_pos = new_evaluete(values)
-            b = 0
-            totx = 0
-            toty = 0
-            for name in names:
-                xctemp = new_pos[b][0]
-                yctemp = new_pos[b][1]
-                print(str(name) + " x:" + str(xctemp.round(2)) + " y: " + str(yctemp.round(2)), flush=True)
-                totx = totx + new_pos[b][0]
-                toty = toty + new_pos[b][1]
-                b += 1
-            xc = totx / len(names)
-            yc = toty / len(names)
-            xc = xc.round(2)
-            yc = yc.round(2)
-            filtro_output_x.step(xc)
-            filtro_output_y.step(yc)
-            # print("K Neighbors Regressor Media" +" x:"+str()+" y: "+str(toty/len(names)), flush=True)
-            print("Posizione" + " x:" + str(filtro_output_x.current_state()) + " y: " + str(
-                filtro_output_y.current_state()), flush=True)
-            animate(filtro_output_x.current_state(), filtro_output_y.current_state())
-            # print("Posizione" +" x:"+str(xc)+" y: "+str(yc), flush=True)
-            # animate(xc,yc)
-            print("raccolti : " + str(p[0]) + " " + str(p[1]) + " " + str(p[2]) + " " + str(p[3]) + " " + str(p[4]),
-                  flush=True)
+                if transition:
+                    os.system(f'say "{transition_timer}"')
 
-            for i in range(5):
-                values[i] = kalman_filters[i].current_state()
-            print("RSSI : " + str(values[0]) + " " + str(values[1]) + " " + str(values[2]) + " " + str(
-                values[3]) + " " + str(values[4]), flush=True)
+                if transition_timer == 0 and transition:
+                    if index_trajcetory < len(trajectory["points"]):
+                        index_trajcetory += 1
+                    else:
+                        break
+                    sec_left = trajectory["points"][index_trajcetory]["time"]
+                    transition = False
+
+                if sec_left == trajectory["points"][index_trajcetory]["time"]:
+                    os.system(f'say "start position {index_trajcetory}"')
+
+                if sec_left == 0 and not transition:
+                    transition_timer = deltaT
+                    os.system(f'say "start transition"')
+                    transition = True
+
+                if trajectory:
+                    if transition:
+                        print("Transitioning")
+                    else:
+                        print("Trajectory point", trajectory["points"][index_trajcetory])
+
+                p = []
+
+                for i in range(5):
+                    all_data = []
+                    raw_rssi_list = []
+                    raw_rssi_only = []
+                    for d in dataReader[i]:
+                        raw_rssi = dataReader[i].pop(0)
+                        ts = time.time()
+                        raw_rssi_list.append([raw_rssi, ts])
+                        raw_rssi_only.append(raw_rssi)
+
+                        kalman_filters[i].step(0, raw_rssi)
+                        all_data.append(kalman_filters[i].current_state())
+                        # rssi_value[i] = raw_rssi
+
+                    if trajectory["save"]:
+                        write_reader_rssi(i, type_run, raw_rssi_list)
+
+                    values[i] = kalman_filters[i].current_state()
+                    rssi_value_regr[i] = values[i]
+                    if len(all_data) == 0:
+                        kalman_filters[i].step(0, -45)
+                        all_data.append(kalman_filters[i].current_state())
+
+                    if len(raw_rssi_only) == 0:
+                        raw_rssi_only.append(-45)
+
+                    rssi_value_rnn[i] = max(all_data)
+                    rssi_value_cnn[i] = all_data
+                    p.append(packet[i])
+                    packet[i] = 0
+
+                ts = time.time()
+
+                x_cnn = new_pos_cnn[0]
+                y_cnn = new_pos_cnn[1]
+                print(f"cnn resnet50 no_kalman: x", x_cnn, "y", y_cnn)
+                if trajectory["save"]:
+                    utility.append_to_csv(realtime_cnn_pos_filename, [[x_cnn, y_cnn, ts]])
+                animate(x_cnn, y_cnn, 0)
+
+                x_rnn = new_pos_rnn[0]
+                y_rnn = new_pos_rnn[1]
+                print(f"rnn nokalman: x", x_rnn, "y", y_rnn)
+                if trajectory["save"]:
+                    utility.append_to_csv(realtime_rnn_pos_filename, [[x_rnn, y_rnn, ts]])
+                # animate(x_rnn, y_rnn, 2)
+
+                pos_regr_save_csv = []
+                for rn, file_name in enumerate(realtime_regressor_pos_filename.keys()):
+                    x = new_pos_regr[rn][0]
+                    y = new_pos_regr[rn][1]
+                    print(names[rn], "x:", x, "y:", y, flush=True)
+
+                    if trajectory["save"]:
+                        utility.append_to_csv(realtime_regressor_pos_filename[file_name], [[x, y, ts]])
+
+                    if rn == 2:
+                        animate(x, y, 1)
+
+                print("Pacchetti raccolti:", p[0], p[1], p[2], p[3], p[4], flush=True)
+
+                for i in range(5):
+                    values[i] = kalman_filters[i].current_state()
+                print("RSSI:", values[0], values[1], values[2], values[3], values[4], flush=True)
+
+                print("\n")
+
+                first_values = False
+                if transition:
+                    transition_timer -= 1
+                else:
+                    sec_left -= 1
+        except KeyboardInterrupt:
+            for connection in c:
+                if connection:
+                    connection.close()
+            break
+
+
+if __name__ == '__main__':
+    multiprocessing.freeze_support()
+    realtime_process("single", True, True)

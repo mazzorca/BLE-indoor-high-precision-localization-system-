@@ -96,7 +96,7 @@ if __name__ == '__main__':
         "linear_mul": 4
     }
 
-    kalman = "kalman"
+    kalman = "nokalman"
 
     best_seed = -1
     if use_best_hyper:

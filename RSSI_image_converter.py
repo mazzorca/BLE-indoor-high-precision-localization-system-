@@ -61,37 +61,56 @@ def translate_RSSI_to_image_greyscale(data, labels, name_experiment, w=15, h=15,
 
     csv_file = f"{base_path}RSSI_images.csv"
     utility.append_to_csv(csv_file, [["RSSI", "Label", "optimal_x", "optimal_y"]])
-    for position, label in zip(data.keys(), labels):
-        position_df = data[position]
+    for data_run, labels_run in zip(data, labels):
+        for position, label in zip(data_run.keys(), labels_run):
+            position_df = data_run[position]
 
-        directory_check = False
-        IMAGE_PATH = f"{base_path}RSSI_images/square{label[0]}"
-        path_for_csv = f"square{label[0]}"
-        csv_list = []
-        for i in range(0, position_df.shape[0] - windows_size, stride):
-            image_df = position_df.iloc[i:i + windows_size, :]
+            directory_check = False
+            IMAGE_PATH = f"{base_path}RSSI_images/square{label[0]}"
+            path_for_csv = f"square{label[0]}"
+            csv_list = []
+            for i in range(0, position_df.shape[0] - windows_size, stride):
+                image_df = position_df.iloc[i:i + windows_size, :]
 
+                x = 0
+                y = 0
+                img_array = np.zeros((h, w), dtype=np.uint8)
+                for index, row in image_df.iterrows():
+                    for r in range(config.NUM_READERS):
+                        img_array[x, y] = row[f'reader{r}'] * 255
+                        x += 1
+
+                    if x == h:
+                        y += 1
+                        x = 0
+
+                img = Image.fromarray(img_array, 'L')
+                filename = f'{IMAGE_PATH}/img{i}.jpg'
+                csv_filename = f'{path_for_csv}/img{i}.jpg'
+
+                if not directory_check:
+                    utility.check_and_if_not_exists_create_folder(filename)
+                    directory_check = True
+
+                img.save(filename)
+                csv_list.append([csv_filename, label[0], label[1], label[2]])
+
+            utility.append_to_csv(csv_file, csv_list)
+
+
+def RSSI_numpy_to_image_greyscale(image_np, w=15, h=15):
+    x = 0
+    y = 0
+    img_array = np.zeros((h, w), dtype=np.uint8)
+    for index, row in image_np:
+        for r in range(config.NUM_READERS):
+            img_array[x, y] = row[f'reader{r}'] * 255
+            x += 1
+
+        if x == h:
+            y += 1
             x = 0
-            y = 0
-            img_array = np.zeros((h, w), dtype=np.uint8)
-            for index, row in image_df.iterrows():
-                for r in range(config.NUM_READERS):
-                    img_array[x, y] = row[f'reader{r}'] * 255
-                    x += 1
 
-                if x == h:
-                    y += 1
-                    x = 0
+    img = Image.fromarray(img_array, 'L')
 
-            img = Image.fromarray(img_array, 'L')
-            filename = f'{IMAGE_PATH}/img{i}.jpg'
-            csv_filename = f'{path_for_csv}/img{i}.jpg'
-
-            if not directory_check:
-                utility.check_and_if_not_exists_create_folder(filename)
-                directory_check = True
-
-            img.save(filename)
-            csv_list.append([csv_filename, label[0], label[1], label[2]])
-
-        utility.append_to_csv(csv_file, csv_list)
+    return img

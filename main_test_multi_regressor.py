@@ -10,7 +10,7 @@ from sklearn import tree
 import graphviz
 
 if __name__ == '__main__':
-    performance_test = 6
+    performance_test = 4
     choice = 0
 
     if performance_test == 0:
@@ -29,22 +29,29 @@ if __name__ == '__main__':
         # name_files_reader = [["dati3105run0r", "dati3105run1r", "dati3105run2r"]]
         # name_files_cam = [["Cal3105run0", "Cal3105run1", "Cal3105run2"]]
 
-        x_train, y_train = dataset_generator.generate_dataset_base("BLE2605r", "2605r0")
-        train_dataset = [x_train, y_train]
+        # x_train, y_train = dataset_generator.generate_dataset_base("BLE2605r", "2605r0")
+        # train_dataset = [x_train, y_train]
+        train_dataset = dataset_generator.load_dataset_numpy_file("x_train", "y_train")
         for name_file_reader, name_file_cam in zip(name_files_reader, name_files_cam):
-            x_test, y_test = dataset_generator.generate_dataset(name_file_reader, name_file_cam,
-                                                                dataset_generator.generate_dataset_base)
+            # x_test, y_test = dataset_generator.generate_dataset(name_file_reader, name_file_cam,
+            #                                                     dataset_generator.generate_dataset_base)
 
-            test_dataset = [x_test, y_test]
+            test_name = dataset_generator.dataset_tests[name_file_reader[0]]
+            test_dataset = dataset_generator.load_dataset_numpy_file(test_name[0], test_name[1])
+            # test_dataset = [x_test, y_test]
             testMultiRegress.compare_regressor_with_ecdf(train_dataset, test_dataset, name_file_reader,
                                                          what_type_of_ecdf=choice)
 
     if performance_test == 4:
         train_dataset = dataset_generator.load_dataset_numpy_file("x_train", "y_train")
-        test_dataset = dataset_generator.load_dataset_numpy_file("x_test2", "y_test2")
+        # train_dataset = dataset_generator.load_dataset_numpy_file("AllSquare_RSSI", "AllSquare_Target")
+        # train_dataset[0] = train_dataset[0].transpose()
+        # train_dataset[1] = train_dataset[1].transpose()
 
-        testMultiRegress.compare_k_NNs(1000, 100, train_dataset, test_dataset,
-                                       "dati3105run2r")
+        test_dataset = dataset_generator.load_dataset_numpy_file("x_test", "y_test")
+
+        testMultiRegress.compare_k_NNs(2000, 200, train_dataset, test_dataset,
+                                       ["dati3105run0r dati3105run1r dati3105run2r"])
 
     if performance_test == 5:
         clf = testMultiRegress.CLASSIFIERS_DICT['Decision Tree']
@@ -67,7 +74,7 @@ if __name__ == '__main__':
         total_dataset_x = np.concatenate([set0[0], set1[0], set2[0], set3[0]])
         total_dataset_y = np.concatenate([set0[1], set1[1], set2[1], set3[1]])
 
-        x_train, x_test, y_train, y_test = train_test_split(total_dataset_x, total_dataset_y, train_size=0.50)
+        x_train, x_test, y_train, y_test = train_test_split(total_dataset_x, total_dataset_y, train_size=0.05)
 
         train_dataset = [x_train, y_train]
         test_dataset = [x_test, y_test]

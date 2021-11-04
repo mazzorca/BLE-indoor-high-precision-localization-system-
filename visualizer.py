@@ -1,6 +1,9 @@
 """
 This file contains the functions to visualize data
 """
+import json
+
+import matplotlib
 import matplotlib.pyplot as plt
 
 import config
@@ -27,7 +30,7 @@ from cnn_testing import load_model
 
 def plot_kalman_rssi():
     kalman_rssi_to_be_equalized, time_Reader = utility.extract_and_apply_kalman_csv("BLE2605r")
-    kalman_rssi = utility.equalize_data_with_nan(kalman_rssi_to_be_equalized)
+    kalman_rssi = utility.equalize_data_with_a_value(kalman_rssi_to_be_equalized)
     rssi_dict = {
         "Reader0": kalman_rssi[0],
         "Reader1": kalman_rssi[1],
@@ -266,7 +269,7 @@ def plot_dataset_without_outliers():
         X_wo_outlier_k[:, 0].tolist()
     ]
 
-    data = utility.equalize_data_with_nan(l)
+    data = utility.equalize_data_with_a_value(l)
     plot_dict = {
         "X_with_outlier": data[0],
         "X_without_outlier_raw": data[1],
@@ -450,7 +453,9 @@ def plot_3d_setting_time_and_predicted_point(predicted_name_files, settling_name
 
 
 def cnn_determination_square(model_name, wxh, experiment):
-    model_type = model_name.split("/")[0]
+    matplotlib.use('Agg')
+
+    model_type = model_name.split("/")[0].split("_")[0]
     model = cnn_config.MODELS[model_type]['model']
     transform = cnn_config.MODELS[model_type]['transform']
 
@@ -504,3 +509,34 @@ def cnn_determination_square(model_name, wxh, experiment):
 
             plt.savefig(name)
             plt.close()
+
+
+def plot_trajectory(trajectory):
+    with open(f'{trajectory}.json', ) as f:
+        data = json.load(f)
+
+    fig, ax = plt.subplots()
+
+    for point in data["points"]:
+        ax.scatter(point['x'], point['y'], c='red')
+
+    plt.xlim(0, 1.80)
+    plt.ylim(0, 0.90)
+
+    major_ticks_x = np.arange(0, 1.81, 0.30)
+    # minor_ticks_x = np.arange(0, 1.81, 0.10)
+    major_ticks_y = np.arange(0, 0.91, 0.30)
+    # minor_ticks_y = np.arange(0, 0.91, 0.10)
+
+    ax.set_xticks(major_ticks_x)
+    # ax.set_xticks(minor_ticks_x, minor=True)
+    ax.set_yticks(major_ticks_y)
+    # ax.set_yticks(minor_ticks_y, minor=True)
+
+    ax.grid(which='both')
+    plt.title("Positioning points in the realtime experiment")
+    plt.ylabel('Y')
+    plt.xlabel('X')
+
+    plt.show()
+    plt.savefig("plots/near_trajectory_in_the_table.png")

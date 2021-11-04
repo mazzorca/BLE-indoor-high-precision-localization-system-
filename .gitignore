@@ -6,6 +6,7 @@ plots/
 cnns/
 runs/
 pytorch_tutorial/
+realtime_data/
 .idea/
 __pycache__/
 

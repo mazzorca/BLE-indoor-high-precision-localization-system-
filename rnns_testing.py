@@ -44,8 +44,6 @@ def rnn_test(model, name_file_reader, type_dist):
                              shuffle=True,
                              num_workers=2)
 
-    model = ble.BLErnn()
-    model.load_state_dict(torch.load(f"rnns/ble.pth"))
     model.eval()
 
     model = model.float()

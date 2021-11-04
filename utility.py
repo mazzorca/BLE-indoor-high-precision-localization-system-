@@ -67,12 +67,12 @@ def get_euclidean_distance(a_x, a_y):
     return errors
 
 
-def equalize_data_with_nan(data):
+def equalize_data_with_a_value(data, value=np.nan):
     max_dim = max([len(elem) for elem in data])
     print(max_dim)
 
     for vec in data:
-        vec.extend([np.nan] * (max_dim - len(vec)))
+        vec.extend([value] * (max_dim - len(vec)))
 
     return data
 
@@ -290,7 +290,7 @@ def printDati(dati, confronto):
 
     axs[0].plot(confronto[0], 'b', linewidth=2.0, label="confronto x")
     axs[0].plot(confronto[1], 'r', linewidth=2.0, label="confronto y")
-    plt.legend()
+    axs[0].legend()
     plt.show()
 
 
