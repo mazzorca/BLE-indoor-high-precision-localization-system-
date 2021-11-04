@@ -6,20 +6,23 @@ import copy
 
 
 use_best_hyper = 1
-skip_training = 1
+skip_training = 0
+skip_testing = 0
+
 
 if __name__ == '__main__':
-    model_name = "alexnet"
-    kalman = "nokalman"
+    model_name = "ble"
+    kalman = "kalman"
     transform = cnn_config.MODELS[model_name]["transform"]
     model = cnn_config.MODELS[model_name]["model"]
 
     params = {
-        "wxh-stride": "25x25-10",
+        "wxh-stride": "20x20-10",
         "epoch": 20,
         "batch_size": 32,
         "lr": 0.01
     }
+    
     dataset = "BLE2605r"
 
     best_seed = -1
@@ -51,24 +54,25 @@ if __name__ == '__main__':
 
     testing_datasets = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
 
-    number_argmax_list = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
-    for type_dist in [1]:
-        print("Type_dist:", type_dist)
-        for testing_dataset in testing_datasets:
-            for number_argmax in number_argmax_list:
-                print("testing on:", testing_dataset, "Arg for distance:", number_argmax)
+    if not skip_testing:
+        number_argmax_list = [elem+1 for elem in range(18)]
+        for type_dist in [0,1]:
+            print("Type_dist:", type_dist)
+            for testing_dataset in testing_datasets:
+                for number_argmax in number_argmax_list:
+                    print("testing on:", testing_dataset, "Arg for distance:", number_argmax)
 
-                preds, ys = cnn_test(
-                    model,
-                    params["wxh-stride"],
-                    testing_dataset,
-                    transform,
-                    int(params["batch_size"]),
-                    type_dist,
-                    number_argmax=number_argmax
-                )
+                    preds, ys = cnn_test(
+                        model,
+                        params["wxh-stride"],
+                        testing_dataset,
+                        transform,
+                        int(params["batch_size"]),
+                        type_dist,
+                        number_argmax=number_argmax
+                    )
 
-                type_dist_save = f"{type_dist}-{number_argmax}"
+                    type_dist_save = f"{type_dist}-{number_argmax}"
 
-                base_file_name = f"cnn_results/{model_name}/{type_dist_save}.{int(params['epoch'])}-{params['lr']}-{int(params['batch_size'])}-{params['wxh-stride']}-{testing_dataset}"
-                write_cnn_result(base_file_name, preds, ys)
+                    base_file_name = f"cnn_results/{model_name}/{type_dist_save}.{int(params['epoch'])}-{params['lr']}-{int(params['batch_size'])}-{params['wxh-stride']}-{testing_dataset}"
+                    write_cnn_result(base_file_name, preds, ys)
