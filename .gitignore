@@ -5,6 +5,7 @@ rnns/
 plots/
 cnns/
 runs/
+cnn_results/backup/
 pytorch_tutorial/
 realtime_data/
 .idea/

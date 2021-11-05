@@ -388,9 +388,13 @@ def realtime_process(n, ready, auto_launch=False, config=None):
 
 
 def seletion_demo():
-    config = {}
+    config = {
+        "Regressor": False,
+        "CNN": False,
+        "RNN": False
+    }
     print("Select the solutions to adopt:\n 1: regressors\n 2: CNN\n 3. RNN")
-    solutions = input("?>")
+    solutions = input("?> ")
 
     if "1" in solutions:
         config["Regressor"] = True
