@@ -10,7 +10,7 @@ from sklearn import tree
 import graphviz
 
 if __name__ == '__main__':
-    performance_test = 4
+    performance_test = 3
     choice = 0
 
     if performance_test == 0:
@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
         # x_train, y_train = dataset_generator.generate_dataset_base("BLE2605r", "2605r0")
         # train_dataset = [x_train, y_train]
-        train_dataset = dataset_generator.load_dataset_numpy_file("x_train", "y_train")
+        train_dataset = dataset_generator.load_dataset_numpy_file("x_train_total", "y_train_total")
         for name_file_reader, name_file_cam in zip(name_files_reader, name_files_cam):
             # x_test, y_test = dataset_generator.generate_dataset(name_file_reader, name_file_cam,
             #                                                     dataset_generator.generate_dataset_base)
@@ -43,7 +43,7 @@ if __name__ == '__main__':
                                                          what_type_of_ecdf=choice)
 
     if performance_test == 4:
-        train_dataset = dataset_generator.load_dataset_numpy_file("x_train", "y_train")
+        train_dataset = dataset_generator.load_dataset_numpy_file("x_train_total", "y_train_total")
         # train_dataset = dataset_generator.load_dataset_numpy_file("AllSquare_RSSI", "AllSquare_Target")
         # train_dataset[0] = train_dataset[0].transpose()
         # train_dataset[1] = train_dataset[1].transpose()

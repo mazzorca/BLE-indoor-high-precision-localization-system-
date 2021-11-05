@@ -13,17 +13,17 @@ import utility
 import testMultiRegress
 import dataset_generator
 
-# testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
+testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
 # testing_dataset = ["dati3105run0r"]
 # testing_dataset = ["dati3105run1r"]
-testing_dataset = ["dati3105run2r"]
+# testing_dataset = ["dati3105run2r"]
 
 """
     plots =
         1: compare with regressor
 """
 plots = 4
-choise = 1
+choise = 0
 
 best_models_name_cnn = [
     "resnet50_kalman/20-0.01-32-15x15-10",

@@ -4,7 +4,7 @@ import config
 import visualizer
 
 if __name__ == "__main__":
-    visualize = 14
+    visualize = 8
 
     if visualize == 0:
         visualizer.plot_kalman_rssi()
@@ -31,7 +31,15 @@ if __name__ == "__main__":
         visualizer.plot_dataset_without_outliers()
 
     if visualize == 8:
-        visualizer.plot_y_dataset()
+        dataset_list = []
+        r_list = []
+        prefix = "squares/"
+        for square_number in range(18):
+            name_dataset = f"s{square_number}_2910"
+            dataset_list.append(f"{prefix}{name_dataset}")
+            r_list.append(f"{prefix}{name_dataset}_r")
+
+        visualizer.plot_y_dataset(name_files_reader=r_list, name_files_cam=dataset_list)
 
     if visualize == 9:
         visualizer.plot_good_points_line('R', "kpc/kpc-good_pointsRplot.xlsx")

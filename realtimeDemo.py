@@ -85,8 +85,6 @@ def write_reader_rssi(index, type_run, rssi_list):
 
 
 def realtime_process(n, ready, auto_launch=False, config=None):
-    print('Process: ' + str(n))
-
     plt.ion()
 
     s = socket.socket()
@@ -143,7 +141,7 @@ def realtime_process(n, ready, auto_launch=False, config=None):
                             args=("regressor", start_valuating, rssi_value_regr, new_pos_regr,))
         proc_regr.start()
 
-    host = "192.168.1.41"
+    host = "192.168.1.19"
     connected = 0
     threads = []
 
@@ -217,11 +215,6 @@ def realtime_process(n, ready, auto_launch=False, config=None):
         sc[index].set_offsets(np.c_[x_plot[index], y_plot[index]])
         plt.show(block=False)
         plt.pause(0.001)
-
-    x = 0
-    y = 0
-    index_rnn = 0
-    max_index_rnn = 10
 
     first_values = True
     c = []
@@ -342,7 +335,7 @@ def realtime_process(n, ready, auto_launch=False, config=None):
                 if config["CNN"]:
                     x_cnn = new_pos_cnn[0]
                     y_cnn = new_pos_cnn[1]
-                    print(f"cnn resnet50 no_kalman: x", x_cnn, "y", y_cnn)
+                    print(f"cnn: x", x_cnn, "y", y_cnn)
                     if trajectory["save"]:
                         utility.append_to_csv(realtime_cnn_pos_filename, [[x_cnn, y_cnn, ts]])
                     animate(x_cnn, y_cnn, 0)
@@ -350,7 +343,7 @@ def realtime_process(n, ready, auto_launch=False, config=None):
                 if config["RNN"]:
                     x_rnn = new_pos_rnn[0]
                     y_rnn = new_pos_rnn[1]
-                    print(f"rnn nokalman: x", x_rnn, "y", y_rnn)
+                    print(f"rnn: x", x_rnn, "y", y_rnn)
                     if trajectory["save"]:
                         utility.append_to_csv(realtime_rnn_pos_filename, [[x_rnn, y_rnn, ts]])
                     animate(x_rnn, y_rnn, 2)
