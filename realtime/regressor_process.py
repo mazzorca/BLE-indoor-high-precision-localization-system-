@@ -40,11 +40,11 @@ def worker_evaluate_regressor(n, start_valuating, rssi_value, new_pos_regressor)
     # datasetRX = arff.load(open('datasetTele1006ALLx0.arff'))
 
     # datasetRY = arff.load(open('datasets/arff/datasetAllSquarey0.arff'))
-    datasetRY = arff.load(open('datasets/arff/datasetTrain0y0.arff'))
+    datasetRY = arff.load(open('datasets/arff/datasetTrainy0.arff'))
     dataRY = np.array(datasetRY['data'])
 
     # datasetRX = arff.load(open('datasets/arff/datasetAllSquarex0.arff'))
-    datasetRX = arff.load(open('datasets/arff/datasetTrain0x0.arff'))
+    datasetRX = arff.load(open('datasets/arff/datasetTrainx0.arff'))
     dataRX = np.array(datasetRX['data'])
 
     X = dataRX[:, :5]
