@@ -1,3 +1,7 @@
+"""
+Script to search for the best hyper parameters for the RNN
+Equal to the cnn version, but for the RNN
+"""
 import torch
 import torchvision
 

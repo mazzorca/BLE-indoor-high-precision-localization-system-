@@ -1,3 +1,6 @@
+"""
+Script that contains the method that helps the dataset_generator.py to transform the dataset in image for the CNN
+"""
 import numpy as np
 from PIL import Image
 import numpy as np

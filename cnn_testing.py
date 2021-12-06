@@ -1,10 +1,12 @@
+"""
+Script for the testing of a CNN
+"""
+
 import torch
 
 import utility
 from RSSI_images_Dataset import RSSIImagesDataset
 from torch.utils.data import DataLoader
-
-import gc
 
 import numpy as np
 
@@ -20,6 +22,13 @@ def load_model(model, parameters_saved):
 
 
 def write_cnn_result(base_file_name, preds, ys):
+    """
+    write the result of the testing
+    :param base_file_name: name and path with witch save the testing file
+    :param preds: list of predicted ouput
+    :param ys: list of labels
+    :return:
+    """
     utility.check_and_if_not_exists_create_folder(base_file_name)
 
     with open(f"{base_file_name}_p.npy", 'wb') as f:
@@ -30,6 +39,12 @@ def write_cnn_result(base_file_name, preds, ys):
 
 
 def get_points_in_xy(probabilities, number_argmax):
+    """
+    Get the points from the probailities array
+    :param probabilities: list of probability for each square
+    :param number_argmax: number of probability to take into account
+    :return: return a list of the coordinates x and a list of coordinates y
+    """
     probabilities_np = probabilities.cpu().numpy()
     indexs_np = probabilities_np.argsort()[:, -number_argmax:]
 
@@ -54,6 +69,15 @@ def get_points_in_xy(probabilities, number_argmax):
 
 
 def euclidean_pred_and_optimal(preds, ps, probabilities, p, number_argmax):
+    """
+    Calculate the predicted and optimal euclidean value.
+    :param preds: predicted array in construction
+    :param ps: array of dict of optimal points in coordinates x, y in construction
+    :param probabilities: array of tensor of probabilities of the current batch
+    :param p: points of the current batch size
+    :param number_argmax: square to be taken into account
+    :return: the new array of predicted points an optimal points with the new batch concatenated
+    """
     xs = p['x'].numpy()
     ys = p['y'].numpy()
     point = np.column_stack([xs, ys])
@@ -68,6 +92,15 @@ def euclidean_pred_and_optimal(preds, ps, probabilities, p, number_argmax):
 
 
 def square_pred_and_optimal(preds, ys, probabilities, y, number_argmax):
+    """
+    Calculate the predicted and optimal square value.
+    :param preds: predicted array in construction
+    :param ys: array of squares in construction
+    :param probabilities: array of tensor of probabilities of the current batch
+    :param y: optimal squares of the current batch
+    :param number_argmax: square to be taken into account
+    :return: the new array of predicted points an optimal points with the new batch concatenated
+    """
     y = y.cpu().numpy()
     ys = np.concatenate([ys, y])
 
@@ -88,6 +121,19 @@ def square_pred_and_optimal(preds, ys, probabilities, y, number_argmax):
 
 
 def cnn_test(model, wxh, dataset, transform, batch_size, type_dist, number_argmax=cnn_conf.NUMBER_ARGMAX_EUCLIDEAN):
+    """
+    Test the given cnn model trained
+    :param model: model to be tested
+    :param wxh: shape of the image used to train the model
+    :param dataset: dataset on which test the cnn
+    :param transform: transformation to be applied on the dataset
+    :param batch_size: batch_size to be used on the testing
+    :param type_dist: what type of test perform
+        0: euclidean
+        1: squares
+    :param number_argmax: square to be taken into account
+    :return: the new array of predicted points an optimal points with the new batch concatenated
+    """
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     test_set = RSSIImagesDataset(csv_file=f"datasets/cnn_dataset/{wxh}/{dataset}/RSSI_images.csv",
@@ -99,7 +145,7 @@ def cnn_test(model, wxh, dataset, transform, batch_size, type_dist, number_argma
                              shuffle=True,
                              num_workers=2)
 
-    model.eval()
+    model.eval()  # necessary to switch from training mode to evaluation mode
     model.to(device)
 
     ys = np.array([])
@@ -110,12 +156,12 @@ def cnn_test(model, wxh, dataset, transform, batch_size, type_dist, number_argma
         preds = np.array([[], []])
         preds = preds.transpose()
 
-    with torch.no_grad():
+    with torch.no_grad():  # remove the gradient calculus in the testing
         for X, y, p in test_loader:
             X, y = X.to(device), y.to(device)
 
             probabilities = model(X)
-            probabilities = torch.nn.functional.softmax(probabilities, dim=1)
+            probabilities = torch.nn.functional.softmax(probabilities, dim=1)  # obtain the probabilities
 
             if type_dist == 0:
                 preds, ys = euclidean_pred_and_optimal(preds, ys, probabilities, p, number_argmax)
@@ -158,25 +204,31 @@ def test_accuracy(model, transform, wxh, batch_size):
 
 
 if __name__ == '__main__':
-    wxh = "20x20-10"
-    testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
-    type_dist = 1
+    wxh = "20x20-10"  # width and height of the image on wich the cnn to be tested has bee trained
+    testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]  # list of dataset on wich test the CNN
+    type_dist = 1  # What type of metric produce, 0 euclidean, 1 square
 
+    # Hyper parameters della CNN
     epoch = 10
-    lr = 0.001
-    bs = 32
+    lr = 0.001  # learning rate
+    bs = 32  # batch size
 
-    batch_size = 10
+    knk = "kalman"  # use or not use kalman
+
+    batch_size = 10  # Batch size to be used during the testing
 
     for model_name in cnn_conf.MODELS:
+        # filtering of the model to test
         if not cnn_conf.active_moodels[model_name]:
             continue
 
-        model = cnn_conf.MODELS[model_name]['model']
-        transform = cnn_conf.MODELS[model_name]['transform']
-        parameters_saved = "ble/10-0.001-32-20x20-10"
-        model = load_model(model, parameters_saved)
+        model = cnn_conf.MODELS[model_name]['model']  # getting the model
+        transform = cnn_conf.MODELS[model_name]['transform']  # getting the transformation
+        # getting the dict of weights to restore the trained model
+        parameters_saved = f"{model_name}_{knk}/{type_dist}.10-0.001-32-20x20-10"
+        model = load_model(model, parameters_saved)  # restore the trained model
 
+        # Testing the CNN on the given datasets with the given metric
         for dataset_name in testing_dataset:
             print(f'testing {model_name} on {dataset_name} dataset')
             preds, ys = cnn_test(model, wxh, dataset_name, transform, batch_size, type_dist)

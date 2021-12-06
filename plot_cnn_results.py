@@ -1,3 +1,6 @@
+"""
+Scirpt to test and visualizee the data for CNN, RNN and regressor
+"""
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -13,18 +16,26 @@ import utility
 import testMultiRegress
 import dataset_generator
 
-testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
-# testing_dataset = ["dati3105run0r"]
-# testing_dataset = ["dati3105run1r"]
-# testing_dataset = ["dati3105run2r"]
+# Testing dataset comment or uncomment what dataset to usee
+testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]  # use all three testing dataset
+# testing_dataset = ["dati3105run0r"]  # only the most difficult
+# testing_dataset = ["dati3105run1r"]  # the intermediate one
+# testing_dataset = ["dati3105run2r"]  # the most easiest
 
 """
     plots =
-        1: compare with regressor
+        0: compare specific cnn with each other
+        1: compare a specific cnn with regressors on the dataset uncommented
+        2: compare specific cnns with different inference square number
+        3: compare the best cnns in the best_models_name_cnn, with the best inference square
+        4: compare the specific rnn and cnn with the regressor
+        5: plot a line between the points predicted by the model and the optimal point on the table 
+        6: get a table with the best inference square for each cnn
 """
 plots = 4
-choise = 0
+choise = 0  # as always 0 euclidean 1 squares
 
+# A list of all the model with the best parameters, only cnn
 best_models_name_cnn = [
     "resnet50_kalman/20-0.01-32-15x15-10",
     "resnet50_nokalman/20-0.01-128-20x20-10",
@@ -38,6 +49,7 @@ best_models_name_cnn = [
     "alexnet_nokalman/20-0.01-32-20x20-10"
 ]
 
+# a list of all the model with the best parameters
 best_models_name = [
     "resnet50_kalman/20-0.01-32-15x15-10",
     "resnet50_nokalman/20-0.01-128-20x20-10",
@@ -84,15 +96,14 @@ def get_results(model_name, experiments_list, par, type_ecdf):
 
 def compare_cnns_with_ecdf(experiment_list, models_names, what_type_of_ecdf=0, type_dists=None):
     """
-    Compare the performance of different regressor with a run by ecdf
-    :param models_names:
+    Compare the performance of different cnns and rnn with a run by ecdf
+    :param models_names: list of models to compare
     :param experiment_list: dataset where to test the models
     :param what_type_of_ecdf:
         0: euclidean
         1: square
-        2: compare 2 or more type of euclidean ecdf
-        3: compare 2 or more type of square ecdf
-    :param type_dists: Com'è calcolato l'errore
+    :param type_dists: number of square in the inference process for the CNN, a string of the type "1-2" for square and
+        use 2 square for the inference
     :return: void
     """
 
@@ -131,6 +142,14 @@ def compare_cnns_with_ecdf(experiment_list, models_names, what_type_of_ecdf=0, t
 
 
 def compare_cnns_with_ecdf_euclidean(models_names, experiment_list, type_dists):
+    """
+    Compare the performance of different cnn and rnn with the ecdf euclidean
+    :param models_names: list of model to test
+    :param experiment_list: list of dateeset to use in the test
+    :param type_dists: number of square in the inference process for the CNN, a string of the type "0-2" for euclidean
+        and use 2 square for the inference
+    :return:
+    """
     ecdf_total = pd.DataFrame()
 
     for model_name in models_names:
@@ -143,7 +162,7 @@ def compare_cnns_with_ecdf_euclidean(models_names, experiment_list, type_dists):
             argmax_number = type_dist.split("-")[1]
             predicteds, optimals = get_results(res_folder, experiment_list, par, type_dist)
 
-            name = f"{model} {kalman_or_not} {argmax_number}"
+            name = f"{model}"
             ecdf_df = statistic_utility.get_ecdf_euclidean_df(optimals, predicteds, name)
             ecdf_total = pd.concat([ecdf_total, ecdf_df], axis=1)
 
@@ -153,6 +172,15 @@ def compare_cnns_with_ecdf_euclidean(models_names, experiment_list, type_dists):
 
 
 def compare_cnns_with_ecdf_square(models_names, experiment_list, ax, type_dists):
+    """
+    Compare the performance of different cnn and rnn with the ecdf square
+    :param models_names: list of model to test
+    :param experiment_list: list of dateeset to use in the test
+    :param ax: axes where to plot the ecdf
+    :param type_dists: number of square in the inference process for the CNN, a string of the type "1-2" for square and
+        use 2 square for the inference
+    :return: void
+    """
     for model_name in models_names:
         res_folder = model_name.split("/")[0]
         model = res_folder.split("_")[0]
@@ -176,7 +204,7 @@ def compare_cnns_with_ecdf_square(models_names, experiment_list, ax, type_dists)
                 xp.append(square_x)
                 yp.append(square_y)
 
-            name = f"{model} {kalman_or_not} {argmax_number}"
+            name = f"{model}"
             ecdf_df = statistic_utility.get_ecdf_square_df(xo, yo, xp, yp, name)
 
             index = ecdf_df.index.tolist()
@@ -189,6 +217,14 @@ def compare_cnns_with_ecdf_square(models_names, experiment_list, ax, type_dists)
 
 
 def compare_with_regressors_euclidean(model_name, experiment_list, type_dist):
+    """
+    Compare the cnn and rnn with the regressors with euclidean metric
+    :param model_name: list of cnn models to compare with the regressors
+    :param experiment_list: list of experiment to use
+    :param type_dist: number of square in the inference process for the CNN, a string of the type "0-2" for euclidean
+        and use 2 square for the inference
+    :return: void
+    """
     ecdf_total_cnn = compare_cnns_with_ecdf_euclidean([model_name], experiment_list, [type_dist])
 
     name_plot = ' '.join(experiment_list)
@@ -213,6 +249,14 @@ def compare_with_regressors_euclidean(model_name, experiment_list, type_dist):
 
 
 def compare_with_regressors_square(model_name, experiment_list, type_dist):
+    """
+    Compare the cnn and rnn with the regressors with square metric
+    :param model_name: list of cnn models to compare with the regressors
+    :param experiment_list: list of experiment to use
+    :param type_dist: number of square in the inference process for the CNN, a string of the type "1-2" for square and
+        use 2 square for the inference
+    :return: void
+    """
     fig, ax = plt.subplots()
 
     name_plot = ' '.join(experiment_list)
@@ -234,6 +278,15 @@ def compare_with_regressors_square(model_name, experiment_list, type_dist):
 
 
 def get_tables_of_best_argument_euclidean(models_names, experiment_list, percentage, type_dists=None):
+    """
+    Get the table of the best number of square to use in the inference for CNNs to obtain the minor euclidean error
+    :param models_names: list of cnn models
+    :param experiment_list: list of experiment to use
+    :param percentage: percentage at at which we will see the error
+    :param type_dists: list of number of square in the inference process for the CNN, a string of the type "1-2" for
+        square and use 2 square for the inference
+    :return: a dataframe with the corresponding error at the given percentage for each combination
+    """
     if type_dists is None:
         type_dists = [f"0-{i}" for i in range(1, 19)]
 
@@ -263,6 +316,15 @@ def get_tables_of_best_argument_euclidean(models_names, experiment_list, percent
 
 
 def get_tables_of_best_argument_square(models_names, experiment_list, squares, type_dists=None):
+    """
+    Get the table of the best number of square to use in the inference for CNNs to obtain the minor square error
+    :param models_names: list of cnn models
+    :param experiment_list: list of experiment to use
+    :param squares: at what percentage it reach the squares we pass
+    :param type_dists: list of number of square in the inference process for the CNN, a string of the type "1-2" for
+        square and use 2 square for the inference
+    :return: A dataframe with the corresponding percentage at the given square number for each combination
+    """
     if type_dists is None:
         type_dists = [f"1-{i}" for i in range(1, 19)]
 
@@ -303,6 +365,10 @@ def get_tables_of_best_argument_square(models_names, experiment_list, squares, t
 
 
 def compare_best_cnns_euclidean():
+    """
+
+    :return:
+    """
     df = get_tables_of_best_argument_euclidean(best_models_name_cnn, testing_dataset, 90)
 
     ecdf_total = pd.DataFrame()
@@ -335,11 +401,15 @@ def compare_best_cnns_euclidean():
 
 
 def compare_best_cnns_square():
+    """
+
+    :return:
+    """
     df = get_tables_of_best_argument_euclidean(best_models_name_cnn, testing_dataset, 90)
     name_experiment = ' '.join(testing_dataset)
 
     fig, ax = plt.subplots()
-    ax.set_title(f"ECDF compare bests CNNs {name_experiment}")
+    ax.set_title(f"CDF run0")
     for model_name in best_models_name_cnn:
         res_folder = model_name.split("/")[0]
         model = res_folder.split("_")[0]
@@ -361,6 +431,12 @@ def compare_best_cnns_square():
 
 
 def get_ecdf_regressors_euclidean(experiment_list, regressor_to_use=None):
+    """
+    Get the euclidean ecdf of the regressors on specific dataset
+    :param experiment_list: list of testing dataset
+    :param regressor_to_use: list corresponding to the regressors to use, if none, use the default dict
+    :return: the ecdf of the regressor
+    """
     if regressor_to_use is None:
         regressor_to_use = testMultiRegress.CLASSIFIERS_DICT
 
@@ -374,6 +450,13 @@ def get_ecdf_regressors_euclidean(experiment_list, regressor_to_use=None):
 
 
 def get_ecdf_regressors_square(experiment_list, ax, regressor_to_use=None):
+    """
+    Get the square ecdf of the regressors on specific dataset
+    :param experiment_list: list of testing dataset
+    :param ax: axes where to plot the ecdf
+    :param regressor_to_use: list corresponding to the regressors to use, if none, use the default dict
+    :return: the axes updated
+    """
     if regressor_to_use is None:
         regressor_to_use = testMultiRegress.CLASSIFIERS_DICT
 
@@ -387,6 +470,12 @@ def get_ecdf_regressors_square(experiment_list, ax, regressor_to_use=None):
 
 
 def compare_all_euclidean(experiment_list, models_conf):
+    """
+
+    :param experiment_list:
+    :param models_conf:
+    :return:
+    """
     plot_total_df = pd.DataFrame()
 
     name_experiment = ' '.join(experiment_list)
@@ -412,7 +501,7 @@ def compare_all_euclidean(experiment_list, models_conf):
     plot_total_df = plot_total_df.interpolate(method='linear')
 
     plot_total_df.plot.line(
-        title=f"CDF {name_plot}",
+        title=f"CDF run3",
         xlabel="(m)",
         ylabel="Empirical cumulative distribution function"
     )
@@ -422,12 +511,18 @@ def compare_all_euclidean(experiment_list, models_conf):
 
 
 def compare_all_square(experiment_list, models_conf):
+    """
+
+    :param experiment_list:
+    :param models_conf:
+    :return:
+    """
     name_experiment = ' '.join(experiment_list)
     name_plot = f"{name_experiment} total comparison"
     save_name = f"cdf_square_{name_experiment.replace(' ', '_')}_total.png"
 
     fig, ax = plt.subplots()
-    ax.set_title(f"CDF {name_plot}")
+    ax.set_title(f"CDF run1")
 
     for model_conf in models_conf:
         model_name = model_conf[0]
@@ -449,6 +544,14 @@ def compare_all_square(experiment_list, models_conf):
 
 
 def plot_points_on_table(model_name, experiment_list, type_dist):
+    """
+    A deeebug function to plot the segment of error of each point in the dataset
+    :param model_name: list of model to use
+    :param experiment_list: list of dataset to use
+    :param type_dist: list of number of square in the inference process for the CNN, a string of the type "1-2" for
+        square and use 2 square for the inference
+    :return: void
+    """
     res_folder = model_name.split("/")[0]
     par = model_name.split("/")[1]
     predicteds_dl, optimals_dl = get_results(res_folder, experiment_list, par, "0-1")

@@ -1,3 +1,7 @@
+"""
+The model of the cnn taken by the paper
+Hybrid Wireless Fingerprint Indoor Localization Method Based on a Convolutional Neural Network
+"""
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -14,8 +18,8 @@ class BLEcnn(nn.Module):
         self.fc2 = nn.Linear(4608, 18)
 
     def forward(self, x):
-        x = self.pool(self.conv1(x))
-        x = self.pool(self.conv2(x))
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
         x = self.flatten(x)
         x = self.fc2(self.dropout(self.fc1(x)))
         return x

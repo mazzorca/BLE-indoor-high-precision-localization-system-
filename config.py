@@ -3,8 +3,8 @@ Contains all the constants used project wide
 """
 from shapely.geometry.polygon import Polygon
 
-debug_cnn = False
-debug_rnn = False
+debug_cnn = False  # used in the realtime script to output the image of the cnn
+debug_rnn = False  # used in the realtime script to output the image of the rnn
 
 NAME_FILES_O = ["dati0710centralpoints_r", "dati1410allpoints_r", "dati1410onesquare_r"]
 NAME_FILES = ["BLE2605r", "dati3105run0r", "dati3105run1r", "dati3105run2r"]
@@ -21,6 +21,7 @@ CORD = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
 CORD_X = [15, 45, 75, 105, 135, 165, 15, 45, 75, 105, 135, 165, 15, 45, 75, 105, 135, 165]
 CORD_Y = [75, 75, 75, 75, 75, 75, 45, 45, 45, 45, 45, 45, 15, 15, 15, 15, 15, 15]
 
+# table in polygon
 SQUARES = [
         Polygon([(0, 0.6), (0.3, 0.6), (0.3, 0.9), (0, 0.9)]),
         Polygon([(0.3, 0.6), (0.6, 0.6), (0.6, 0.9), (0.3, 0.9)]),
@@ -44,11 +45,12 @@ SQUARES = [
         Polygon([(1.5, 0), (1.8, 0), (1.8, 0.3), (1.5, 0.3)]),
 ]
 
-OUTLIERS_BAND = 1.
-MAX_T_ASS_SAMPLES = 100
+OUTLIERS_BAND = 1.  # band to not to be exceeded
+MAX_T_ASS_SAMPLES = 100  # Maximum time that the RSSI value must not exceed the band
 
-OPTIMAL_TH = 0.05
+OPTIMAL_TH = 0.05  # threshold of the predicted points
 
+# Base kalman filter parameters
 KALMAN_BASE = {
         'A': 1.,  # No process innovation
         'C': 1.,  # Measurement

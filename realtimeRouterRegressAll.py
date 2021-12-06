@@ -1,3 +1,6 @@
+"""
+Script for the realtime experiment
+"""
 import socket
 import multiprocessing
 from multiprocessing import Process, Manager, Value
@@ -16,20 +19,30 @@ from realtime.cnn_process import worker_evaluate_cnn
 from realtime.rnn_process import worker_evaluate_rnn
 from realtime.regressor_process import worker_evaluate_regressor
 
-DIM_REALTIME = 5
+DIM_REALTIME = 5  # Define how many points in the past to plot
 
+# Ip addresses of the raspberry
 readers = ["192.168.1.2",
            "192.168.1.29",
            "192.168.1.48",
            "192.168.1.6",
            "192.168.1.26"]
-username = "pi"
-password = "raspberry"
+username = "pi"  # raspberry username
+password = "raspberry"  # raspberry password
 
+# Ip addresses of the raspberry
 ipclient = ["192.168.1.2", "192.168.1.29", "192.168.1.48", "192.168.1.6", "192.168.1.26"]
 
 
 def new_client(clientsocket, addr, dataReader, packet):
+    """
+    Create a new process to collect the packet from the reader
+    :param clientsocket: the connection socket with the client
+    :param addr: ip address
+    :param dataReader: a list that will contain the value RSSI of each beacon
+    :param packet: the number of packet received from one call to another
+    :return: void
+    """
     index = 0
     if addr[0] == ipclient[0]:
         index = 0
@@ -47,6 +60,14 @@ def new_client(clientsocket, addr, dataReader, packet):
 
 
 def worker(n, socket, k, p, ):
+    """
+    Process that collect the RSSI body
+    :param n: index
+    :param socket: socket of the client
+    :param k: list containing the value of the RSSI
+    :param p: number of packet readed
+    :return: void
+    """
     print('Worker: ' + str(n))
     while True:
         msg = socket.recv(1024)
@@ -62,6 +83,11 @@ def worker(n, socket, k, p, ):
 
 
 def load_trajectory(trajectory_name):
+    """
+    load in a dictiony the trajectory
+    :param trajectory_name: String of the path of the trajectory
+    :return:
+    """
     if not trajectory_name:
         return None
 
@@ -90,10 +116,11 @@ def realtime_process(n, ready, auto_launch=False):
     plt.ion()
 
     s = socket.socket()
-    port = 5000
+    port = 5000  # port of the socket
 
     manager = Manager()
 
+    # Structure that can be shared between process
     dataReader = manager.list([
         manager.list([-45]),
         manager.list([-45]),
@@ -115,11 +142,13 @@ def realtime_process(n, ready, auto_launch=False):
         [-45]
     ])
     new_pos_cnn = manager.list([0, 0])
+    # cnn process
     proc_cnn = Process(target=worker_evaluate_cnn, args=("cnn", start_valuating, rssi_value_cnn, new_pos_cnn,))
     proc_cnn.start()
 
     rssi_value_rnn = manager.list([-45, -45, -45, -45, -45])
     new_pos_rnn = manager.list([0, 0])
+    # rnn process
     proc_rnn = Process(target=worker_evaluate_rnn, args=("rnn", start_valuating, rssi_value_rnn, new_pos_rnn,))
     proc_rnn.start()
 
@@ -131,11 +160,12 @@ def realtime_process(n, ready, auto_launch=False):
         [0, 0],
         [0, 0]
     ])
+    # regressor process
     proc_regr = Process(target=worker_evaluate_regressor,
                         args=("regressor", start_valuating, rssi_value_regr, new_pos_regr,))
     proc_regr.start()
 
-    host = "192.168.1.19"
+    host = "192.168.1.19"  # this computer ip, change with your
     connected = 0
     threads = []
 

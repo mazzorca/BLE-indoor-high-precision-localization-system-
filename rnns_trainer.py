@@ -1,3 +1,6 @@
+"""
+Script to train an RNN
+"""
 import torch
 import numpy as np
 import torchvision.transforms
@@ -11,7 +14,7 @@ from rnn_dataset import RnnDataset
 from get_from_repeated_tune_search import get_params
 
 
-use_best_hyper = 1
+use_best_hyper = 1  # Use ot not the best parameters found by rnns_tuner.py script
 
 
 def seed_worker(worker_id):
@@ -90,13 +93,14 @@ def train_rnn(kalman, seed, params):
 
 
 if __name__ == '__main__':
+    # Parameters to use
     params = {
         "lr": 0.01,
         "lstm_size": 32,
         "linear_mul": 4
     }
 
-    kalman = "nokalman"
+    kalman = "nokalman"  # use or not kalman
 
     best_seed = -1
     if use_best_hyper:

@@ -1,14 +1,18 @@
+"""
+Configuration file of the CNN
+"""
 import torchvision
 from cnns_models.rfid_cnn import RFIDcnn
 from cnns_models.wifi_cnn import WiFicnn
 from cnns_models.ble_cnn import BLEcnn
 
-NUMBER_ARGMAX_SQUARE = 1
-NUMBER_ARGMAX_EUCLIDEAN = 6
+NUMBER_ARGMAX_SQUARE = 1  # default number of square to use in the inference, if the metric is square
+NUMBER_ARGMAX_EUCLIDEAN = 6  # default number of square to use in the inference, if the metric is euclidean
 
-image_w = 15
-image_h = 15
+image_w = 15  # default width
+image_h = 15  # default height
 
+# transformation for the most popular cnns
 transform_base_rgb = torchvision.transforms.Compose([
         # torchvision.transforms.ToPILImage(),
         torchvision.transforms.Resize((144, 144)),
@@ -16,6 +20,7 @@ transform_base_rgb = torchvision.transforms.Compose([
         torchvision.transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
 
+# transformation for the papers cnns
 transform_base_grey = torchvision.transforms.Compose([
         # torchvision.transforms.ToPILImage(),
         torchvision.transforms.Resize(144),
@@ -24,6 +29,7 @@ transform_base_grey = torchvision.transforms.Compose([
         torchvision.transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
 
+# A dict with all the cnns taken into account
 MODELS = {
     'alexnet': {
         'model': torchvision.models.alexnet(num_classes=18),
@@ -71,11 +77,11 @@ MODELS = {
 }
 
 active_moodels = {
-        'alexnet': False,
-        'resnet50': False,
-        'squeezenet': False,
-        'mobilenet_v3_small': False,
-        'rfid': False,
-        'wifi': False,
-        'ble': True
-    }
+    'alexnet': False,
+    'resnet50': False,
+    'squeezenet': False,
+    'mobilenet_v3_small': False,
+    'rfid': False,
+    'wifi': False,
+    'ble': True
+}

@@ -1,3 +1,10 @@
+"""
+Script that contains the body of the cnn process in the real time experiment
+
+For the cnn, the values of the RSSI collected by the process in a slice of time, will be added ad the end of the
+current matrix.
+The matrix is initialized with a  copy of the first value
+"""
 import itertools
 import time
 

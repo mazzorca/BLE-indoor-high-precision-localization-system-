@@ -1,3 +1,8 @@
+"""
+Script for the search of the best hyper parameters
+It will perform a grid search and get the output in a file csv with the seed necessary to best reproduce the experiment
+The grid is configurable and is given in a dict form
+"""
 import torch
 import torchvision
 

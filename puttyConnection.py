@@ -1,3 +1,7 @@
+"""
+Script python for connecting ot the raspberry and start the python script
+only for windows
+"""
 from subprocess import Popen
 import time
 import open_putty_and_send_payload as op

@@ -1,3 +1,6 @@
+"""
+Script to train the cnn
+"""
 import torch
 import torchvision
 

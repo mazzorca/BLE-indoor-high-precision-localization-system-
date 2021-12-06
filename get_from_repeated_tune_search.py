@@ -1,3 +1,6 @@
+"""
+Script to get the value of the best hyper params from the tune of each CNN
+"""
 import pandas as pd
 
 

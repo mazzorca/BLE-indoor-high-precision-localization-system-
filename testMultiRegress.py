@@ -1,3 +1,6 @@
+"""
+Script to cotaing function to calculate the performance of the regressors
+"""
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -196,7 +199,7 @@ def compare_experiment_with_ecdf_square():
     plt.show()
 
 
-def compare_regressor_with_ecdf(train_dataset, test_dataset, name_file_reader, regressors=None, what_type_of_ecdf=0):
+def compare_regressor_with_ecdf(train_dataset, test_dataset, name_file_reader, num_run, regressors=None, what_type_of_ecdf=0):
     """
     Compare the performance of different regressor with a run by ecdf
     :param name_file_reader: experiment where are  taken the data
@@ -217,7 +220,7 @@ def compare_regressor_with_ecdf(train_dataset, test_dataset, name_file_reader, r
         ecdf_total = compare_regressor_with_ecdf_euclidean(train_dataset, test_dataset, regressors)
 
         ecdf_total.plot.line(
-            title=f"CDF {name_plot}",
+            title=f"CDF run{num_run}",
             xlabel="(m)",
             ylabel="Empirical cumulative distribution function"
         )
@@ -225,7 +228,7 @@ def compare_regressor_with_ecdf(train_dataset, test_dataset, name_file_reader, r
         plt.savefig(f'plots/ecdf_euclidean_{name_plot}.png')
     if what_type_of_ecdf == 1:
         fig, ax = plt.subplots()
-        ax.set_title(f"CDF {name_plot}")
+        ax.set_title(f"CDF run{num_run}")
         ax = compare_regressor_with_ecdf_square(train_dataset, test_dataset, regressors, ax)
 
         plt.legend(loc='lower right')
@@ -262,6 +265,7 @@ def compare_regressor_with_ecdf_square(train_dataset, test_dataset, regressors, 
     y_test = test_dataset[1]
 
     for regressor_name in regressors:
+        print(regressor_name)
         ecdf_df = get_ecdf_dataset_squares(x_train, x_test, y_train, y_test, regressors[regressor_name], regressor_name)
 
         index = ecdf_df.index.tolist()

@@ -1,3 +1,7 @@
+"""
+The model of the cnn taken by the paper
+Comparison of CNN Applications for RSSI-Based Fingerprint Indoor Localization
+"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

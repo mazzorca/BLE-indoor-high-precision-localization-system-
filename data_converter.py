@@ -1,5 +1,5 @@
 """
-File that contains the functions to transform the data in dataset for the regressors
+File that contains the functions to transform the data in dataset for the regressors, cnn and rnn
 """
 import math
 import numpy as np
@@ -11,6 +11,11 @@ from Configuration import dataset_config
 
 
 def create_kalman_filter(kalman_filter_par):
+    """
+    create the kalman filter object
+    :param kalman_filter_par: parameters to be used
+    :return: the kalman filter object
+    """
     kalman_filter = KalmanFilter(dim_x=1, dim_z=1)
     kalman_filter.F = np.array([[kalman_filter_par['A']]])
     kalman_filter.H = np.array([[kalman_filter_par['C']]])
@@ -21,6 +26,11 @@ def create_kalman_filter(kalman_filter_par):
 
 
 def get_index_taglio(tele):
+    """
+    Get the index on which the tag has been moved from one position to another from the camera data
+    :param tele: array of data of the camera
+    :return: array of index
+    """
     indextaglio = [100]
     for i in range(len(tele[2]) - 1):  # len(tele[2]) = lunghezza valori nella x
         if (abs(tele[2][i] - tele[2][i + 1]) > 0.05) | (abs(tele[3][i] - tele[3][i + 1]) > 0.05):
@@ -32,6 +42,11 @@ def get_index_taglio(tele):
 
 
 def get_index_taglio_reader(time):
+    """
+    Get the index on which the tag has been moved from one position to another from the readers data
+    :param time: array of timestamp on which the reader receives the beacon
+    :return: array of index
+    """
     indextaglio_reader = []
 
     for j in range(5):
@@ -48,21 +63,19 @@ def get_index_taglio_reader(time):
     return indextaglio_reader
 
 
-# Funzione per il taglio dei dati provenienti dai 5 reader, andando ad allineare nel tempo i dati raccolti dalle
-# telecamere e i dati raccolti dai reader nel tempo
 def fixReader(dati, time, tele):
+    """
+    Function for cutting data from the 5 readers, aligning the data collected by the cameras and the data collected by the readers over time over time
+    :param dati: data from the readers
+    :param time: time from the readers
+    :param tele: data from the cameras
+    :return: extended reader data, data from the cameras and the new index of change position
+    """
     newData = []
     newTime = []
 
     indextaglio = get_index_taglio(tele)
     indextaglio_reader = get_index_taglio_reader(time)
-
-    print("taglio tele: ", len(indextaglio))
-    print("taglio reader1: ", len(indextaglio_reader[0]))
-    print("taglio reader2: ", len(indextaglio_reader[1]))
-    print("taglio reader3: ", len(indextaglio_reader[2]))
-    print("taglio reader4: ", len(indextaglio_reader[3]))
-    print("taglio reader5: ", len(indextaglio_reader[4]))
 
     num_tagli = 0
     for i in range(len(indextaglio_reader[0]) - 1):
@@ -111,6 +124,12 @@ def fixReader(dati, time, tele):
 
 
 def transform_in_dataframe(data, index):
+    """
+    transform the dataset in a list o dataframe in witch each dataframe represent a position
+    :param data: data from the readers
+    :param index: index of change position
+    :return: list of dataframe with five columns corresponding to the RSSI value of the readers
+    """
     reader_position_list = {}
     for index_row, row in index[0].iterrows():
         reader_position_list[f'pos{index_row}'] = pd.DataFrame()
@@ -141,6 +160,13 @@ def transform_in_dataframe(data, index):
 
 
 def cutReader(dati, tele, ind):
+    """
+    remove the first one third and last one third of each position and remove the duplicates
+    :param dati: data from the readers
+    :param tele: data from the comeras
+    :param ind: index of change position
+    :return: cutted data from reader and cameras and new list of indexes of change position
+    """
     newData = [[] for _ in range(len(dati))]
     newTele = [[] for _ in range(2)]
     new_data = [0 for _ in range(len(dati))]
@@ -175,8 +201,9 @@ def cutReader(dati, tele, ind):
 def apply_kalman_filter(no_kalman_data, kalman_filter_par):
     """
     Apply  the kalman filter on the raw data
-    :param no_kalman_data:
-    :type kalman_filter_par: dict
+    :param no_kalman_data: raw data from the readers
+    :param kalman_filter_par: kalman filter parameters to be used
+    :return: Data from readers filtered with the kalman filter
     """
     kalman_data = []
 
@@ -197,6 +224,12 @@ def apply_kalman_filter(no_kalman_data, kalman_filter_par):
 
 
 def positivize_rssi(data_readers, min_RSSI):
+    """
+    For RNN process the RSSI by adding the min value to get all positive value
+    :param data_readers: data from readers
+    :param min_RSSI: min value to add
+    :return: the data from reader in positive value
+    """
     normalized_RSSI = [[] for _ in data_readers]
 
     for r, data_reader in enumerate(data_readers):

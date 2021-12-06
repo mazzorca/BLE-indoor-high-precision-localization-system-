@@ -1,3 +1,12 @@
+"""
+Script that contains the body of the regressor process in the real time experiment
+
+Different from the cnn and rnn, the regressor will be also trained.
+To do that generate an arff dataset, that can be done with the last code in the dataset generator, and change it in line
+52 and 56
+
+Each time the last value filtered with kalman is used to get the inference.
+"""
 import time
 
 import arff

@@ -1,5 +1,5 @@
 """
-This file contains the functions to visualize data
+This file contains the functions to visualize data, that are the functions that are called by the main_visualizer
 """
 import json
 
@@ -68,18 +68,21 @@ def plot_raw_and_kalman_rssi():
     kalman_data1 = data_converter.apply_kalman_filter(raws_data, kalman_filter_par)
 
     plot_dict = {
-        "RAW_RSSI_0": raws_data[0],
-        "KALMAN_RSSI_0": kalman_data1[0]
+        "RAW RSSI": raws_data[0],
+        "KALMAN RSSI": kalman_data1[0]
     }
     df = pd.DataFrame(plot_dict)
 
+    px = 1 / plt.rcParams['figure.dpi']
     # df.plot.line(subplots=True)
     df.plot.line(
         title="Raw and filtered RSSI",
         xlabel="Sample",
-        ylabel="RSSI(db)"
+        ylabel="RSSI(db)",
+        figsize=(900 * px, 300 * px)
     )
 
+    plt.tight_layout()
     plt.savefig("plots/raw_and_kalman_rssi.png")
 
 
@@ -124,10 +127,10 @@ def plot_extended_kalman_and_cutted_rssi():
     index_extended = utility.get_index_start_and_end_position(time_fixed)
     extended_chunks = utility.get_chunk(dati_reader_fixed, index_extended)
 
-    final_data_reader, final_data_cam, _ = data_converter.cutReader(dati_reader_fixed, dati_cam, index_cut)
+    final_data_reader, final_data_cam, index_taglio_cut = data_converter.cutReader(dati_reader_fixed, dati_cam, index_cut)
 
     extended_df = pd.DataFrame({"Extended_KALMAN_RSSI_0": extended_chunks[0][0]['RSSI Value']})
-    cutted_df = pd.DataFrame({"Cutted_KALMAN_RSSI_0": final_data_reader[0][0:470]})
+    cutted_df = pd.DataFrame({"Cutted_KALMAN_RSSI_0": final_data_reader[0][0:index_taglio_cut[1]]})
 
     extended_df.plot.line(
         title="extended RSSI",
@@ -178,6 +181,11 @@ def different_kalman_filter():
 
 
 def specific_kalman_filter(kalman_filters=None):
+    """
+    Plot the value of the RSSI filtered with the kalman filter that can be passed in a form of dataframe
+    :param kalman_filters: dataframe containing the kalman filter with parameters R and Q
+    :return: void
+    """
     raws_data, raws_time = data_extractor.get_raw_rssi_csv("BLE2605r")
     index_cuts = utility.get_index_start_and_end_position(raws_time)
     raw_chunks = utility.get_chunk(raws_data, index_cuts)
@@ -214,6 +222,12 @@ def specific_kalman_filter(kalman_filters=None):
 
 
 def specific_kalman_filter_chunck(kalman_filters=None, selected_cut=0):
+    """
+    Plot the value the RSSI value filtered with kalman of a specific chunk
+    :param kalman_filters: dataframe containing the kalman filter with parameters R and Q
+    :param selected_cut: The specific chunk, i.e. the position
+    :return: void
+    """
     raws_data, raws_time = data_extractor.get_raw_rssi_csv("BLE2605r")
     index_cut = utility.get_index_start_and_end_position(raws_time)
     raw_chunks = utility.get_chunk(raws_data, index_cut)
@@ -283,6 +297,13 @@ def plot_dataset_without_outliers():
 
 
 def get_raws_means_and_bounds_for_plot(index_cuts, raw_chunks):
+    """
+    utility functions, get the mean, upper bound and lower bound of the raw value of all position, the bounds are
+    calculated with the value that can be found in config.py
+    :param index_cuts: list of index where the position change
+    :param raw_chunks: value of the RSSI not filtered
+    :return: list of mean for each position, and list of upper bound and list of lower bound
+    """
     raw_means = []
     bounds_up = []
     bounds_down = []
@@ -302,6 +323,12 @@ def get_raws_means_and_bounds_for_plot(index_cuts, raw_chunks):
 
 
 def plot_y_dataset(name_files_reader=config.NAME_FILES, name_files_cam=config.CAM_FILES):
+    """
+    plot the position of the dataset y in coordinates on the table
+    :param name_files_reader: source file for RSSI
+    :param name_files_cam: source file for the camera data
+    :return: void
+    """
     ax = plt.axes(title="Arrangement of points in the dataset")
     colors = plt.get_cmap("viridis")(np.linspace(0, 1, len(name_files_reader)))
 
@@ -321,6 +348,12 @@ def plot_y_dataset(name_files_reader=config.NAME_FILES, name_files_cam=config.CA
 
 
 def plot_good_points_sparse(name_file="kpc/kpc-good_points_high_range.xlsx", regressor='Nearest Neighbors D'):
+    """
+    plot the hexbin graph by taking the data from the excel files generated from th kalman_paramter_comparator.py
+    :param name_file: path file of the excel file
+    :param regressor: regressor to use to take the data
+    :return: void
+    """
     df = pd.read_excel(name_file)
 
     plot_dict = {
@@ -346,6 +379,13 @@ def plot_good_points_sparse(name_file="kpc/kpc-good_points_high_range.xlsx", reg
 
 
 def plot_good_points_line(what_to_plot, name_file="kpc/kpc-good_points.xlsx", regressor='Nearest Neighbors D'):
+    """
+    Plot the line to explain how the predicted points variate by fixing a parameter and varying the other
+    :param what_to_plot: parameter to variate, 'R' or 'Q'
+    :param name_file: path file of the excel file
+    :param regressor: regressor to use to take the data
+    :return: void
+    """
     df = pd.read_excel(name_file)
 
     plot_dict = {}
@@ -386,6 +426,16 @@ def plot_table_plygons():
 def plot_3d_setting_time_and_predicted_point(predicted_name_files, settling_name_file,
                                              regressor_name="Nearest Neighbors D",
                                              settling_name="SETTLING_SAMPLE_AVG"):
+    """
+    Plot a 3d graph, with R and Q as x and y, the number of predicted points that can be in percentage or absolute as
+    the z value, and the settling time as color of the surface
+    :param predicted_name_files: path file of the excel file that contain the number of predicted points for each
+        regressor
+    :param settling_name_file: path file of the excel file that contain the settling time for each regressor
+    :param regressor_name: What regressor to use for taking data
+    :param settling_name: if taking the avg settling time, the max or the min
+    :return: void
+    """
     predicted_df = pd.read_excel(predicted_name_files)
     settling_df = pd.read_excel(settling_name_file)
 
@@ -453,6 +503,13 @@ def plot_3d_setting_time_and_predicted_point(predicted_name_files, settling_name
 
 
 def cnn_determination_square(model_name, wxh, experiment):
+    """
+    Plot the inference process, with probability of all point of an experiment of a specific model model
+    :param model_name: model to use
+    :param wxh: size of the images
+    :param experiment: the dataset to use
+    :return: void
+    """
     matplotlib.use('Agg')
 
     model_type = model_name.split("/")[0].split("_")[0]
@@ -512,6 +569,11 @@ def cnn_determination_square(model_name, wxh, experiment):
 
 
 def plot_trajectory(trajectory):
+    """
+    plot on a blank table the trajectory that can be used in the realtime experiment
+    :param trajectory: the file containing the trajectory
+    :return:
+    """
     with open(f'{trajectory}.json', ) as f:
         data = json.load(f)
 

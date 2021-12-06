@@ -1,21 +1,24 @@
-from train_cnns import train_model, weight_reset, save_model
-from cnn_testing import cnn_test, write_cnn_result, load_model, test_accuracy
+"""
+Script to train and test a cnn
+"""
+from train_cnns import train_model
+from cnn_testing import cnn_test, write_cnn_result, load_model
 from Configuration import cnn_config
 from get_from_repeated_tune_search import get_params
-import copy
 
 
-use_best_hyper = 1
-skip_training = 0
-skip_testing = 0
+use_best_hyper = 1  # Use or not the best hyper parameter found with tune_cnns.py
+skip_training = 0  # Do not train the model
+skip_testing = 0  # Do not test the model
 
 
 if __name__ == '__main__':
-    model_name = "ble"
-    kalman = "kalman"
-    transform = cnn_config.MODELS[model_name]["transform"]
+    model_name = "ble"  # model to be taken
+    kalman = "kalman"  # use or not kalman
+    transform = cnn_config.MODELS[model_name]["transform"]  # transformation to be used
     model = cnn_config.MODELS[model_name]["model"]
 
+    # manual configuration of the hyper parameters parameters
     params = {
         "wxh-stride": "20x20-10",
         "epoch": 20,
@@ -23,8 +26,9 @@ if __name__ == '__main__':
         "lr": 0.01
     }
     
-    dataset = "BLE2605r"
+    dataset = "BLE2605r"  # dataset to be used as testing
 
+    # reproducibility of the training
     best_seed = -1
     if use_best_hyper:
         df_params, best_seed = get_params(f"{kalman}/{model_name}", list(params.keys()))
@@ -34,6 +38,7 @@ if __name__ == '__main__':
     print("params used:", params)
     print("seed used:", best_seed)
 
+    # training
     model_name = f"{model_name}_{kalman}"
     if not skip_training:
         trained_model = train_model(
@@ -49,14 +54,15 @@ if __name__ == '__main__':
             save=True
         )
 
+    # saving model following the naming convention
     parameters_saved = f"{model_name}/{int(params['epoch'])}-{params['lr']}-{int(params['batch_size'])}-{params['wxh-stride']}"
     model = load_model(model, parameters_saved)
 
-    testing_datasets = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
+    testing_datasets = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]  # dataset on which test the model
 
     if not skip_testing:
-        number_argmax_list = [elem+1 for elem in range(18)]
-        for type_dist in [0,1]:
+        number_argmax_list = [elem+1 for elem in range(18)]  # number of different square to take for testing
+        for type_dist in [0, 1]:  # the two types of performances
             print("Type_dist:", type_dist)
             for testing_dataset in testing_datasets:
                 for number_argmax in number_argmax_list:

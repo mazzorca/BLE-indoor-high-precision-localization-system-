@@ -16,7 +16,7 @@ def get_ecdf_euclidean_df(optimal_points, predicted_points, ecdf_name):
         bin_edges = np.insert(bin_edges, 0, 0)
     bin_edges = np.delete(bin_edges, -1)
 
-    ecdf_dict[f'ecdf_{ecdf_name}'] = ecdf
+    ecdf_dict[f'{ecdf_name}'] = ecdf
 
     df = pd.DataFrame(ecdf_dict, index=bin_edges)
 
@@ -44,7 +44,7 @@ def get_ecdf_euclidean_df_resolve_auto(optimal_points, predicted_points, ecdf_na
         cumsum += weigth
         y.append(cumsum)
 
-    ecdf_dict[f'ecdf_{ecdf_name}'] = y
+    ecdf_dict[ecdf_name] = y
 
     df = pd.DataFrame(ecdf_dict, index=x)
 

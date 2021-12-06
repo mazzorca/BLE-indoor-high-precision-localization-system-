@@ -1,3 +1,7 @@
+"""
+A test script for a CNN in tensorflow, must be completed
+"""
+
 import tensorflow as tf
 
 import pandas as pd

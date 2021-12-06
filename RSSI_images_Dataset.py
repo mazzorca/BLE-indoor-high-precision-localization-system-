@@ -1,3 +1,7 @@
+"""
+Image dataset for the CNN
+contain the path of the image, the square as a label, and the points in exact coordinates
+"""
 import os
 import pandas as pd
 import torch

@@ -1,3 +1,6 @@
+"""
+Script for the testing of the RNN
+"""
 import torch
 import numpy as np
 import torchvision
@@ -78,9 +81,10 @@ def rnn_test(model, name_file_reader, type_dist):
 
 
 if __name__ == '__main__':
-    testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
-    kalman = "kalman"
+    testing_dataset = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]  # testing datasets
+    kalman = "kalman"  # use or not use kalman
 
+    # configuration of the RNN
     params = {
         "lr": 0.01,
         "lstm_size": 32,

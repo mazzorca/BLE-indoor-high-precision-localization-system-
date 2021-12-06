@@ -1,3 +1,9 @@
+"""
+Demo of the Raltime Script
+it will ask for which solutions to use
+if input 123 it will use all, if 12 only regressor and CNN, if 13 only regressor and RNN if only 2 it will use only
+the CNN
+"""
 import socket
 import multiprocessing
 from multiprocessing import Process, Manager, Value

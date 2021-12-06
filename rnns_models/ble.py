@@ -1,3 +1,7 @@
+"""
+The model of the cnn taken by the paper
+An End-to-End BLE Indoor Localization Method Using LSTM
+"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

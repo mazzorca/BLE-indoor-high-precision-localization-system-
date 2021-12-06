@@ -1,3 +1,7 @@
+"""
+The model of the cnn taken by the paper
+Deep Convolutional Neural Network for Passive RFID Tag Localization Via Joint RSSI and PDOA Fingerprint Features
+"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

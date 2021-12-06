@@ -1,3 +1,7 @@
+"""
+Dataset for the rnn
+It will have the path of the numpy file corresponding to the matrix, and the value of the point
+"""
 import os
 import pandas as pd
 import torch

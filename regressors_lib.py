@@ -1,3 +1,6 @@
+"""
+Some function for the regressor
+"""
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsRegressor
@@ -22,6 +25,13 @@ CLASSIFIERS_DICT = {
 
 
 def get_kNN_dict(max_k, stride, weights):
+    """
+    Crate a dict with different kNN with different k parameter
+    :param max_k: max value of k
+    :param stride: stride
+    :param weights: distance or uniform
+    :return: a dict
+    """
     kNN_dict = {}
     Ks = np.arange(0, max_k, stride)
 
@@ -35,6 +45,12 @@ def get_kNN_dict(max_k, stride, weights):
 
 
 def get_predicted_points(regressor, x_test):
+    """
+    get the predicted points associated to a x test
+    :param regressor: regressor to use
+    :param x_test: test dataset
+    :return: x and y
+    """
     Z = regressor.predict(x_test)
 
     lpr = Z[:, 0]
@@ -45,6 +61,11 @@ def get_predicted_points(regressor, x_test):
 
 
 def get_optimal_points(y_test):
+    """
+    get the optimal value of x and y
+    :param y_test: an y dataset
+    :return: x and y of optimal points
+    """
     lor = y_test[:, 0]
     lop = y_test[:, 1]
     lox, loy = utility.pol2cart(lor, lop)
@@ -53,6 +74,15 @@ def get_optimal_points(y_test):
 
 
 def get_regressor_optimal_and_predicted_points(regressor, x_train, x_test, y_train, y_test):
+    """
+    get the points predicted and optimal using a regressor
+    :param regressor: regressor to use
+    :param x_train: train dataset X
+    :param x_test: test dataset x
+    :param y_train: train dataset y
+    :param y_test: test dataset y
+    :return: predicted points and optimal points
+    """
     lox, loy = get_optimal_points(y_test)
     optimal_points = np.column_stack([lox, loy])
 
@@ -64,6 +94,14 @@ def get_regressor_optimal_and_predicted_points(regressor, x_train, x_test, y_tra
 
 
 def get_regressor_predicted_points(regressor, x_train, x_test, y_train):
+    """
+    train a regressor and get the predicted points
+    :param regressor: regressor to use
+    :param x_train: dataset x for training
+    :param x_test: dataset y for testing
+    :param y_train: dataset y for training
+    :return: x and y of the dataset x for testing
+    """
     regressor.fit(x_train, y_train)
     lpx, lpy = get_predicted_points(regressor, x_test)
 
@@ -71,6 +109,11 @@ def get_regressor_predicted_points(regressor, x_train, x_test, y_train):
 
 
 def plot_optimal_and_predicted_points_per_dataset(regressor_name):
+    """
+    plot line between the predicted and the optimal points for each dataset
+    :param regressor_name: regressor to use
+    :return: void
+    """
     name_files_reader = ["dati3105run0r", "dati3105run1r", "dati3105run2r"]
     name_files_cam = ["Cal3105run0", "Cal3105run1", "Cal3105run2"]
 

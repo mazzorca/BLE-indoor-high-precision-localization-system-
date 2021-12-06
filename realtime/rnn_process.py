@@ -1,3 +1,10 @@
+"""
+Script that contains the body of the rnn process in the real time experiment
+
+For the rnn, the max value of the packet collected by the process in a slice of time, will be added ad the end of the
+current matrix.
+The matrix is initialized with a  copy of the first value
+"""
 import time
 
 import numpy as np
@@ -13,6 +20,7 @@ from rnns_testing import load_model as load_model_rnn
 
 
 def evaluate_rnn(model_rnn, matrix_np, transform):
+    print(matrix_np)
     with torch.no_grad():
         tensor_matrix = transform(matrix_np)
         tensor_matrix = tensor_matrix.float()
@@ -87,6 +95,7 @@ def worker_evaluate_rnn(n, start_valuating, rssi_value, new_pos_rnn):
                 img_d_rnn = Image.fromarray(matrix_np_d, 'L')
                 img_d_rnn = img_d_rnn.convert('RGB')
                 img_d_rnn.show()
+            first_time = False
 
         matrix_np = np.concatenate([matrix_np.flatten()[5:], rnn_rssi_values]).reshape(10, 5)
 
